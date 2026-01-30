@@ -68,7 +68,7 @@
                         </div>
                         <!-- /Logo -->
 
-                        <h4 class="mb-2 text-center">Welcome Back! 👋</h4>
+                        <h4 class="mb-2 text-center">Welcome Back!</h4>
                         <p class="mb-4 text-center">Please sign in to your account and start your session</p>
 
                         <!-- Session Status -->
@@ -112,7 +112,7 @@
                                            required
                                            autocomplete="current-password"
                                            class="form-control @error('password') is-invalid @enderror"
-                                           placeholder="••••••••••••" />
+                                           placeholder="Password" />
                                     <span class="input-group-text cursor-pointer"><i class="bx bx-hide"></i></span>
                                 </div>
                                 @error('password')

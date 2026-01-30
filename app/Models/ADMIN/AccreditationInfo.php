@@ -12,6 +12,7 @@ class AccreditationInfo extends Model
         'year',
         'status',
         'accreditation_body_id',
+        'accreditation_date'
     ];
 // App\Models\AccreditationInfo.php
 

@@ -6,7 +6,7 @@
                      alt="Pit Logo"
                      class="w-px-40 h-auto" />
             </span>
-            <span class="app-brand-text demo menu-text fw-bold ms-2">WDMS</span>
+            <span class="app-brand-text demo menu-text fw-bold ms-2">WADMS</span>
         </a>
 
         <a href="javascript:void(0);"
@@ -32,13 +32,13 @@
                 <ul class="menu-sub">
                     <li class="menu-item {{ Route::is('users.index') ? 'active' : '' }}">
                         <a href="{{ route('users.index') }}" class="menu-link">
-                            <div>Verify Users</div>
+                            <div>Unverified</div>
                         </a>
                     </li>
 
                     <li class="menu-item {{ Route::is('users.taskforce.index') ? 'active' : '' }}">
                         <a href="{{ route('users.taskforce.index') }}" class="menu-link">
-                            <div>Task Force</div>
+                            <div>Verified</div>
                         </a>
                     </li>
                 </ul>
@@ -47,7 +47,7 @@
             <li class="menu-item {{ Route::is('admin.accreditation.*') ? 'active' : '' }}">
                 <a href="{{ route('admin.accreditation.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-badge-check"></i>
-                    <div>Admin Accreditation</div>
+                    <div>Accreditation</div>
                 </a>
             </li>
                <li class="menu-item {{ Route::is('archive.*') ? 'active' : '' }}">
@@ -74,7 +74,7 @@
             </li>
 
         {{-- ================= TASK FORCE (NOT ACTIVE) ================= --}}
-        @elseif (auth()->user()->user_type === 'TASK FORCE')
+        @elseif (auth()->user()->user_type === 'UNVERIFIED USER')
 
             <li class="menu-item disabled">
                 <span class="menu-link text-muted">
@@ -93,12 +93,12 @@
             </li>
 
         {{-- ================= INTERNAL ACCESSOR ================= --}}
-        @elseif (auth()->user()->user_type === 'INTERNAL ACCESSOR')
+        @elseif (auth()->user()->user_type === 'INTERNAL ASSESSOR')
 
             <li class="menu-item {{ Route::is('internal-accessor.*') ? 'active' : '' }}">
                 <a href="{{ route('internal-accessor.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-badge-check"></i>
-                    <div>Internal Accessor Accreditation</div>
+                    <div>Internal Assessor Accreditation</div>
                 </a>
             </li>
 
@@ -119,6 +119,5 @@
     </li>
 
         @endif
-
     </ul>
 </aside>

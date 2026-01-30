@@ -7,7 +7,7 @@
         $user = auth()->user();
     @endphp
 
-    @if ($user->user_type === 'TASK FORCE' && $user->status !== 'Active')
+    @if ($user->user_type === 'UNVERIFIED USER' && $user->status !== 'Active')
 
         <div class="row justify-content-center">
             <div class="col-md-8">
@@ -37,7 +37,6 @@
                                 Please contact your department.
                             </p>
                         @endif
-
                     </div>
                 </div>
             </div>

@@ -2,7 +2,6 @@
 
 @section('contents')
 
-{{-- DataTables CSS --}}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fomantic-ui/2.9.2/semantic.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/2.3.5/css/dataTables.semanticui.css">
 
@@ -36,20 +35,13 @@
 
 @push('scripts')
 
-{{-- jQuery --}}
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-
-{{-- DataTables --}}
 <script src="https://cdn.datatables.net/2.3.5/js/dataTables.js"></script>
 <script src="https://cdn.datatables.net/2.3.5/js/dataTables.semanticui.js"></script>
 
-{{-- SweetAlert2 (CDN if not already global) --}}
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script>
-$(document).ready(function () {
+$(function () {
 
-    $('#users-table').DataTable({
+    const table = $('#users-table').DataTable({
         processing: true,
         ajax: "{{ route('users.data') }}",
         columns: [
@@ -57,25 +49,17 @@ $(document).ready(function () {
             { data: 'name' },
             { data: 'email' },
             { data: 'user_type' },
-
-            // STATUS BADGE
             {
                 data: 'status',
-                render: function (status) {
-                    if (status === 'Pending') {
-                        return '<span class="badge bg-warning">Pending</span>';
-                    }
-                    if (status === 'Suspended') {
-                        return '<span class="badge bg-danger">Suspended</span>';
-                    }
+                render: status => {
+                    if (status === 'Pending') return '<span class="badge bg-warning">Pending</span>';
+                    if (status === 'Suspended') return '<span class="badge bg-danger">Suspended</span>';
                     return status;
                 }
             },
-
-            // READABLE DATE
             {
                 data: 'created_at',
-                render: function (date) {
+                render: date => {
                     const d = new Date(date);
                     return d.toLocaleString('en-US', {
                         month: 'short',
@@ -87,76 +71,84 @@ $(document).ready(function () {
                     });
                 }
             },
-
-            // ACTION BUTTONS (CENTERED)
             {
                 data: null,
                 orderable: false,
                 searchable: false,
                 className: 'text-center align-middle',
-                render: function (data, type, row) {
-                    return `
-                        <div class="d-flex justify-content-center align-items-center gap-2">
-                            <button class="btn btn-sm btn-success"
-                                    title="Verify"
-                                    onclick="verifyUser(${row.id})">
-                                <i class="bx bx-check"></i>
-                            </button>
+                render: row => `
+                    <div class="d-flex justify-content-center gap-2">
+                        <button class="btn btn-sm btn-success btn-verify"
+                                data-id="${row.id}"
+                                title="Verify">
+                            <i class="bx bx-check"></i>
+                        </button>
 
-                           <button class="btn btn-sm btn-danger btn-suspend"
+                        <button class="btn btn-sm btn-danger btn-suspend"
                                 data-id="${row.id}"
                                 data-url="/users/${row.id}/suspend"
                                 title="Suspend">
                             <i class="bx bx-trash"></i>
                         </button>
-
-                        </div>
-                    `;
-                }
+                    </div>
+                `
             }
         ]
     });
 
-});
+    // VERIFY USER WITH ROLE SELECTION
+    $(document).on('click', '.btn-verify', function () {
+        const id = $(this).data('id');
 
+        Swal.fire({
+            title: 'Assign role to this user',
+            input: 'select',
+            inputOptions: {
+                'TASK FORCE': 'Task Force',
+                'INTERNAL ASSESSOR': 'Internal Assessor',
+                'ACCREDITOR':'Accreditor'
+            },
+            inputPlaceholder: 'Select a role',
+            inputValidator: value => {
+                if (!value) return 'You must select a role';
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Verify user',
+        }).then(result => {
+            if (!result.isConfirmed) return;
 
-function verifyUser(id) {
-    Swal.fire({
-        title: "Verify this user?",
-        text: "This user will be activated.",
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonColor: "#28a745",
-        cancelButtonColor: "#6c757d",
-        confirmButtonText: "Yes, verify"
-    }).then((result) => {
-        if (result.isConfirmed) {
             $.ajax({
                 url: `/users/${id}/verify`,
                 type: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
-                success: function (res) {
-                    $('#users-table').DataTable().ajax.reload(null, false);
-
+                data: {
+                    user_type: result.value
+                },
+                success: res => {
+                    table.ajax.reload(null, false);
                     Swal.fire({
-                        title: "Verified!",
+                        icon: 'success',
+                        title: 'Verified!',
                         text: res.message,
-                        icon: "success",
                         timer: 2000,
                         showConfirmButton: false
                     });
                 },
-                error: function () {
-                    Swal.fire("Error", "Failed to verify user.", "error");
+                error: xhr => {
+                    Swal.fire(
+                        'Error',
+                        xhr.responseJSON?.message ?? 'Verification failed',
+                        'error'
+                    );
                 }
             });
-        }
+        });
     });
-}
 
-
+});
 </script>
 
 @endpush
+

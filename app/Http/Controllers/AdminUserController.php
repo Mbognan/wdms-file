@@ -41,15 +41,20 @@ class AdminUserController extends Controller
             'message' => 'User suspended successfully'
         ]);
     }
-    public function verify($id)
+    public function verify(Request $request, $id)
     {
+        $request->validate([
+            'user_type' => 'required|string'
+        ]);
+
         $user = User::findOrFail($id);
+
         $user->status = 'Active';
-        $user->user_type = 'TASK FORCE';
+        $user->user_type = $request->user_type; // assigned by dean
         $user->save();
 
         return response()->json([
-            'message' => 'User verified successfully'
+            'message' => 'User verified and role assigned successfully'
         ]);
     }
 }

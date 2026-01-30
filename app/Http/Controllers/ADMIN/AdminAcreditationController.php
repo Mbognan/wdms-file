@@ -59,6 +59,7 @@ class AdminAcreditationController extends Controller
                 'year' => \Carbon\Carbon::parse($request->date)->year,
                 'status' => 'ongoing',
                 'accreditation_body_id' => $body->id,
+                'accreditation_date' => $request->date
             ]);
 
             // Level (SINGLE)

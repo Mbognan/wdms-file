@@ -21,9 +21,11 @@ class UserFactory extends Factory
             'remember_token' => Str::random(10),
 
             'user_type' => $this->faker->randomElement([
-                'ADMIN',
+                'UNVERIFIED USER',
+                'DEAN',
                 'TASK FORCE',
                 'TASK FORCE CHAIR',
+                'INTERNAL ASSESSOR',
                 'ACCREDITOR'
             ]),
 
