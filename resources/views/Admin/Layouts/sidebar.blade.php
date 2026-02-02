@@ -1,3 +1,8 @@
+@php
+    use App\Enums\UserType;
+    $user = auth()->user();
+@endphp
+
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
     <div class="app-brand demo">
         <a href="#" class="app-brand-link">
@@ -20,7 +25,7 @@
     <ul class="menu-inner py-1">
 
         {{-- ================= ADMIN ================= --}}
-        @if (auth()->user()->user_type === 'ADMIN')
+        @if ($user->user_type === UserType::ADMIN)
 
             <li class="menu-item {{ Route::is('users.*') ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
@@ -50,14 +55,16 @@
                     <div>Accreditation</div>
                 </a>
             </li>
-               <li class="menu-item {{ Route::is('archive.*') ? 'active' : '' }}">
-            <a href="{{ route('archive.index') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-folder"></i>
-                <div>Archive</div>
-            </a>
-    </li>
+
+            <li class="menu-item {{ Route::is('archive.*') ? 'active' : '' }}">
+                <a href="{{ route('archive.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-folder"></i>
+                    <div>Archive</div>
+                </a>
+            </li>
+
         {{-- ================= TASK FORCE (ACTIVE) ================= --}}
-        @elseif (auth()->user()->user_type === 'TASK FORCE' && auth()->user()->status === 'Active')
+        @elseif ($user->user_type === UserType::TASK_FORCE && $user->status === 'Active')
 
             <li class="menu-item {{ Route::is('dashboard') ? 'active' : '' }}">
                 <a href="{{ route('dashboard') }}" class="menu-link">
@@ -73,27 +80,35 @@
                 </a>
             </li>
 
-        {{-- ================= TASK FORCE (NOT ACTIVE) ================= --}}
-        @elseif (auth()->user()->user_type === 'UNVERIFIED USER')
+        {{-- ================= UNVERIFIED / NOT ACTIVE ================= --}}
+        @elseif ($user->user_type === UserType::UNVERIFIED_USER)
 
             <li class="menu-item disabled">
                 <span class="menu-link text-muted">
                     <i class="menu-icon tf-icons bx bx-lock"></i>
+                    <div>
+                        @switch($user->status)
+                            @case('Pending')
+                                Account Under Review
+                                @break
 
-                    @if (auth()->user()->status === 'Pending')
-                        <div>Account Under Review</div>
-                    @elseif (auth()->user()->status === 'Inactive')
-                        <div>Account Inactive</div>
-                    @elseif (auth()->user()->status === 'Suspended')
-                        <div>Account Suspended</div>
-                    @else
-                        <div>Account Not Active</div>
-                    @endif
+                            @case('Inactive')
+                                Account Inactive
+                                @break
+
+                            @case('Suspended')
+                                Account Suspended
+                                @break
+
+                            @default
+                                Account Not Active
+                        @endswitch
+                    </div>
                 </span>
             </li>
 
-        {{-- ================= INTERNAL ACCESSOR ================= --}}
-        @elseif (auth()->user()->user_type === 'INTERNAL ASSESSOR')
+        {{-- ================= INTERNAL ASSESSOR ================= --}}
+        @elseif ($user->user_type === UserType::INTERNAL_ASSESSOR)
 
             <li class="menu-item {{ Route::is('internal-accessor.*') ? 'active' : '' }}">
                 <a href="{{ route('internal-accessor.index') }}" class="menu-link">
@@ -103,7 +118,7 @@
             </li>
 
         {{-- ================= ACCREDITOR ================= --}}
-        @elseif (auth()->user()->user_type === 'ACCREDITOR')
+        @elseif ($user->user_type === UserType::ACCREDITOR)
 
             <li class="menu-item {{ Route::is('internal-accessor.*') ? 'active' : '' }}">
                 <a href="{{ route('internal-accessor.index') }}" class="menu-link">
@@ -111,12 +126,13 @@
                     <div>ACCREDITOR Accreditation</div>
                 </a>
             </li>
-             <li class="menu-item {{ Route::is('archive.*') ? 'active' : '' }}">
-            <a href="{{ route('archive.index') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-folder"></i>
-                <div>Archive</div>
-            </a>
-    </li>
+
+            <li class="menu-item {{ Route::is('archive.*') ? 'active' : '' }}">
+                <a href="{{ route('archive.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-folder"></i>
+                    <div>Archive</div>
+                </a>
+            </li>
 
         @endif
     </ul>
