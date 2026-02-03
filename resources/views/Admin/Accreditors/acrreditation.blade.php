@@ -120,7 +120,7 @@
                         {{-- REAL FORM INPUTS --}}
                         <div id="programHiddenInputs"></div>
 
-                        <small class="text-muted">Example: BSIT, BSCS, BBA</small>
+                        <small class="text-muted">Example: Master of Management</small>
                     </div>
                 </div>
             </div>

@@ -65,65 +65,65 @@
                         <!-- Search -->
                         <div class="navbar-nav align-items-center">
                             <div class="nav-item d-flex align-items-center">
-                                WDMS
+                                WADMS
                             </div>
                         </div>
 
                         <ul class="navbar-nav flex-row align-items-center ms-auto">
-    <li class="nav-item navbar-dropdown dropdown-user dropdown">
-        <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
-            <div class="avatar avatar-online">
-                <img src="{{ asset('assets/img/avatars/1.png') }}" alt class="w-px-40 h-auto rounded-circle" />
-            </div>
-        </a>
-        <ul class="dropdown-menu dropdown-menu-end">
-            <!-- User Info -->
-            <li>
-                <a class="dropdown-item" href="#">
-                    <div class="d-flex">
-                        <div class="flex-shrink-0 me-3">
-                            <div class="avatar avatar-online">
-                                <img src="{{ asset('assets/img/avatars/1.png') }}" alt class="w-px-40 h-auto rounded-circle" />
-                            </div>
-                        </div>
-                        <div class="flex-grow-1">
-                            <span class="fw-medium d-block">{{ auth()->user()->name }}</span>
-                            <small class="text-muted">{{ auth()->user()->user_type }}</small>
-                        </div>
-                    </div>
-                </a>
-            </li>
+                            <li class="nav-item navbar-dropdown dropdown-user dropdown">
+                                <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
+                                    <div class="avatar avatar-online">
+                                        <img src="{{ asset('assets/img/avatars/1.png') }}" alt class="w-px-40 h-auto rounded-circle" />
+                                    </div>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <!-- User Info -->
+                                    <li>
+                                        <a class="dropdown-item" href="#">
+                                            <div class="d-flex">
+                                                <div class="flex-shrink-0 me-3">
+                                                    <div class="avatar avatar-online">
+                                                        <img src="{{ asset('assets/img/avatars/1.png') }}" alt class="w-px-40 h-auto rounded-circle" />
+                                                    </div>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <span class="fw-medium d-block">{{ auth()->user()->name }}</span>
+                                                    <small class="text-muted">{{ auth()->user()->user_type }}</small>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </li>
 
-            <li>
-                <div class="dropdown-divider"></div>
-            </li>
+                                    <li>
+                                        <div class="dropdown-divider"></div>
+                                    </li>
 
-            <!-- My Profile -->
-            <li>
-                <a class="dropdown-item" href="#">
-                    <i class="bx bx-user me-2"></i>
-                    <span class="align-middle">My Profile</span>
-                </a>
-            </li>
+                                    <!-- My Profile -->
+                                    <li>
+                                        <a class="dropdown-item" href="#">
+                                            <i class="bx bx-user me-2"></i>
+                                            <span class="align-middle">My Profile</span>
+                                        </a>
+                                    </li>
 
-            <li>
-                <div class="dropdown-divider"></div>
-            </li>
+                                    <li>
+                                        <div class="dropdown-divider"></div>
+                                    </li>
 
-            <!-- Log Out -->
-            <li>
-                <form method="POST" action="{{ route('logout') }}" id="logout-form">
-                    @csrf
-                    <a class="dropdown-item" href="#"
-                       onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                        <i class="bx bx-power-off me-2"></i>
-                        <span class="align-middle">Log Out</span>
-                    </a>
-                </form>
-            </li>
-        </ul>
-    </li>
-</ul>
+                                    <!-- Log Out -->
+                                    <li>
+                                        <form method="POST" action="{{ route('logout') }}" id="logout-form">
+                                            @csrf
+                                            <a class="dropdown-item" href="#"
+                                            onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                                <i class="bx bx-power-off me-2"></i>
+                                                <span class="align-middle">Log Out</span>
+                                            </a>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
 
                     </div>
                 </nav>
@@ -131,10 +131,10 @@
             <!-- Content wrapper -->
             <div class="content-wrapper">
 
-                {{-- ✅ GLOBAL TOAST CONTAINER --}}
+                {{-- GLOBAL TOAST CONTAINER --}}
                 <div class="toast-container position-fixed top-0 end-0 p-3"></div>
 
-                {{-- ✅ GLOBAL TOAST TEMPLATE --}}
+                {{-- GLOBAL TOAST TEMPLATE --}}
                 <div id="appToast"
                      class="toast align-items-center text-white border-0"
                      role="alert"
@@ -189,6 +189,7 @@
 <!-- GitHub buttons -->
 <script async defer src="https://buttons.github.io/buttons.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 
 <script>
 function showToast(message, type = 'success') {

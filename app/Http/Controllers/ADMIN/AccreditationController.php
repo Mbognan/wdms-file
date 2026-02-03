@@ -52,7 +52,7 @@ class AccreditationController extends Controller
 
 
 
-    // 📂 STORE FILES (SAME STYLE AS SUBPARAMETER UPLOADS)
+    // STORE FILES (SAME STYLE AS SUBPARAMETER UPLOADS)
     foreach ($request->file('files') as $file) {
 
         $path = $file->store(
@@ -93,7 +93,7 @@ public function showAreaEvaluation(
         'parameters.sub_parameters',
     ])->findOrFail($programAreaId);
 
-    // 🔑 Get evaluation with files
+    // Get evaluation with files
     $evaluation = AreaEvaluation::with('files.uploader')
         ->where('program_area_mapping_id', $programAreaId)
         ->first();
@@ -129,8 +129,8 @@ public function showAreaEvaluation(
                 'current_level_id' => $request->level_id,
                 'status'           => $request->status,
                 'comments'         => $request->comments,
-                'level_up'         => null, // 👈 intentionally blank
-                'revisit_until'    => null, // 👈 handle later if needed
+                'level_up'         => null, // intentionally blank
+                'revisit_until'    => null, // handle later if needed
                 'decided_by'       => auth()->id(),
                 'finalized_at'     => now(),
             ]

@@ -18,7 +18,7 @@ return new class extends Migration
                 ->constrained('area_evaluations')
                 ->cascadeOnDelete();
 
-            // 📂 File metadata
+            // File metadata
             $table->string('file_name');
             $table->string('file_path');
             $table->string('file_type')->nullable();

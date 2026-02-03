@@ -51,7 +51,7 @@
     <div class="mb-4">
         <h4>
             <span class="text-muted fw-light">
-                Internal Accessor /
+                Internal Assessor /
             </span>
             {{ $programName }} – Areas
         </h4>

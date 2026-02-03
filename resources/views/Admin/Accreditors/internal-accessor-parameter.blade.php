@@ -1,189 +1,259 @@
 @extends('admin.layouts.master')
 
 @section('contents')
-<style>
-    .users-grid {
-        display: grid;
-        grid-template-columns: repeat(6, 1fr);
-        gap: 16px;
-        text-align: center;
-    }
 
-    .user-box {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .user-avatar {
-        width: 56px;
-        height: 56px;
-        border-radius: 50%;
-        background: #e5e7eb;
-        color: #1e40af;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 6px;
-        box-shadow: 0 2px 6px rgba(0,0,0,.15);
-    }
-
-    .user-name {
-        font-size: 13px;
-        font-weight: 500;
-    }
-</style>
-
-<div class="container-xxl container-p-y">
-
-    {{-- BACK --}}
-    <div class="mb-3">
-        <a href="{{ url()->previous() }}" class="btn btn-sm btn-outline-secondary">
-            ← Back to Areas
-        </a>
-    </div>
+<div class="container-xxl container-p-y"
+     x-data="areaEvaluation()"
+     x-init="init()">
 
     {{-- HEADER --}}
     <h4 class="fw-bold mb-1">{{ $programArea->area->area_name }}</h4>
     <p class="text-muted mb-4">Program Area Evaluation</p>
 
-    {{-- ASSIGNED USERS --}}
+    {{-- AREA EVALUATION --}}
     <div class="card mb-4">
         <div class="card-body">
-            <h6 class="fw-bold mb-3">Assigned Users</h6>
 
-            <div class="users-grid">
-                @foreach ($programArea->users as $user)
-                    <div class="user-box">
-                        <div class="user-avatar">
-                            {{ strtoupper(substr($user->name, 0, 2)) }}
-                        </div>
-                        <div class="user-name">{{ $user->name }}</div>
-                        <div class="user-name text-primary">{{ $user->user_type }}</div>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-    </div>
-
-    {{-- PARAMETERS (REUSED COMPONENT STYLE) --}}
-    <div class="card mb-4">
-        <div class="card-header">
-            <h6 class="fw-bold mb-0">Parameters</h6>
-        </div>
-
-        <div class="card-body">
-            <div class="accordion" id="parameterAccordion">
-                @foreach($parameters as $index => $parameter)
-                    <div class="accordion-item">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button {{ $index ? 'collapsed' : '' }}"
-                                    data-bs-toggle="collapse"
-                                    data-bs-target="#param{{ $parameter->id }}">
-                                {{ $parameter->parameter_name }}
-                            </button>
-                        </h2>
-
-                        <div id="param{{ $parameter->id }}"
-                             class="accordion-collapse collapse {{ !$index ? 'show' : '' }}">
-                            <div class="accordion-body">
-
-                                @foreach ($parameter->sub_parameters as $sub)
-                                    {{-- 🔁 SAME PAGE REDIRECT (NO NEW VIEW) --}}
-                                    <a href="{{ route('subparam.uploads.index', [
-    'subParameter'   => $sub->id,
-    'infoId'         => $infoId,
-    'levelId'        => $levelId,
-    'programId'      => $programId,
-    'programAreaId'  => $programAreaId,
-]) }}"
-   class="d-flex justify-content-between p-2 border rounded mb-2 text-decoration-none text-dark">
-
-    <span>{{ $sub->sub_parameter_name }}</span>
-    <span class="text-muted small">Open</span>
-</a>
-
-                                @endforeach
-
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-    </div>
-
-    {{-- AREA EVALUATION (SAME PAGE) --}}
-    <div class="card mb-4">
-        <div class="card-body">
             <h6 class="fw-bold mb-3">Area Evaluation</h6>
 
-            {{-- UPLOAD --}}
-            <form method="POST"
-                  action="{{ route('area.evaluations.store', [
-                        $infoId,
-                        $levelId,
-                        $programId,
-                        $programAreaId
-                  ]) }}"
-                  enctype="multipart/form-data">
-                @csrf
+            <table class="table table-bordered table-sm align-middle">
+                <thead class="table-light">
+                    <tr class="text-center">
+                        <th style="width:35%">Checklist Item</th>
+                        <th>Available<br><small>(5–4–3)</small></th>
+                        <th>Available but Inadequate<br><small>(2–1)</small></th>
+                        <th>Not Available<br><small>(0)</small></th>
+                        <th>Not Applicable<br><small>(NA)</small></th>
+                        <th style="width:10%">Documents</th>
+                    </tr>
+                </thead>
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Status</label>
-                    <select name="status" class="form-select" required>
-                        <option value="">Select</option>
-                        <option value="not_started">Not Started</option>
-                        <option value="ongoing">Ongoing</option>
-                        <option value="completed">Completed</option>
-                    </select>
-                </div>
+                <tbody>
+                @foreach($parameters as $parameter)
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Upload Files</label>
-                    <input type="file" name="files[]" class="form-control" multiple required>
-                </div>
+                    {{-- PARAMETER HEADER --}}
+                    <tr class="table-secondary fw-semibold">
+                        <td colspan="6">{{ $parameter->parameter_name }}</td>
+                    </tr>
 
-                <button class="btn btn-primary">
-                    <i class="bx bx-upload me-1"></i> Submit
-                </button>
-            </form>
+                    @foreach($parameter->sub_parameters as $sub)
+                    <tr>
+                        <td>{{ $sub->sub_parameter_name }}</td>
 
-            {{-- VIEW FILES --}}
-            @if($evaluation)
-                <hr>
+                        {{-- AVAILABLE (5–4–3) --}}
+                        <td class="text-center">
+                            <select class="form-select form-select-sm"
+                                :value="getStatus('{{ $sub->id }}') === 'available'
+                                    ? getScore('{{ $sub->id }}') : ''"
+                                @change="select('{{ $sub->id }}','available',$event.target.value)">
+                                <option value="">—</option>
+                                <option value="5">5</option>
+                                <option value="4">4</option>
+                                <option value="3">3</option>
+                            </select>
+                        </td>
 
-                <h6 class="fw-bold mb-2">Uploaded Evaluation Files</h6>
+                        {{-- INADEQUATE (2–1) --}}
+                        <td class="text-center">
+                            <select class="form-select form-select-sm"
+                                :value="getStatus('{{ $sub->id }}') === 'inadequate'
+                                    ? getScore('{{ $sub->id }}') : ''"
+                                @change="select('{{ $sub->id }}','inadequate',$event.target.value)">
+                                <option value="">—</option>
+                                <option value="2">2</option>
+                                <option value="1">1</option>
+                            </select>
+                        </td>
 
-                <table class="table table-sm">
-                    <thead>
-                        <tr>
-                            <th>File</th>
-                            <th>Type</th>
-                            <th>Uploaded By</th>
-                            <th>View</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($evaluation->files as $file)
-                            <tr>
-                                <td>{{ $file->file_name }}</td>
-                                <td>{{ strtoupper($file->file_type) }}</td>
-                                <td>{{ $file->uploader->name ?? 'N/A' }}</td>
-                                <td>
-                                    <a href=""
-                                       class="btn btn-sm btn-outline-secondary">
-                                        <i class="bx bx-show"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            @endif
+                        {{-- NOT AVAILABLE (0) --}}
+                        <td class="text-center">
+                            <input type="radio"
+                                   name="eval_{{ $sub->id }}"
+                                   :checked="getStatus('{{ $sub->id }}') === 'not_available'"
+                                   @change="select('{{ $sub->id }}','not_available',0)">
+                        </td>
+
+                        {{-- NOT APPLICABLE (NA) --}}
+                        <td class="text-center">
+                            <input type="radio"
+                                   name="eval_{{ $sub->id }}"
+                                   :checked="getStatus('{{ $sub->id }}') === 'not_applicable'"
+                                   @change="select('{{ $sub->id }}','not_applicable','NA')">
+                        </td>
+
+                        {{-- DOCUMENTS --}}
+                        <td class="text-center">
+                            <a href="{{ route('subparam.uploads.index', [
+                                'subParameter'   => $sub->id,
+                                'infoId'         => $infoId,
+                                'levelId'        => $levelId,
+                                'programId'      => $programId,
+                                'programAreaId'  => $programAreaId,
+                            ]) }}"
+                            class="btn btn-sm btn-outline-primary">
+                                <i class="bx bx-folder-open"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    @endforeach
+                @endforeach
+                </tbody>
+
+                {{-- TOTALS & MEAN --}}
+                <tfoot class="fw-semibold">
+                    <tr>
+                        <td>Total</td>
+                        <td class="text-center" x-text="totals.available"></td>
+                        <td class="text-center" x-text="totals.inadequate"></td>
+                        <td class="text-center" x-text="totals.not_available"></td>
+                        <td class="text-center" x-text="totals.not_applicable"></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>Area Mean</td>
+                        <td colspan="5"
+                            class="text-center fs-5 fw-bold"
+                            x-text="mean"></td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            {{-- RECOMMENDATIONS --}}
+            <div class="mt-4">
+                <label class="fw-bold">Recommendations</label>
+                <textarea class="form-control"
+                          rows="4"
+                          x-model="recommendation"></textarea>
+            </div>
+
         </div>
     </div>
-
 </div>
+
+{{-- ALPINE SCRIPT --}}
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('areaEvaluation', () => ({
+
+        storageKey: 'area-eval-{{ $programAreaId }}-{{ $levelId }}-{{ $programId }}',
+
+        evaluations: {},
+
+        totals: {
+            available: 0,
+            inadequate: 0,
+            not_available: 0,
+            not_applicable: 0
+        },
+
+        mean: '0.00',
+        recommendation: '',
+
+        /* ---------------------------
+           INIT
+        ---------------------------- */
+        init() {
+            const saved = localStorage.getItem(this.storageKey)
+            if (saved) {
+                const data = JSON.parse(saved)
+                this.evaluations = data.evaluations ?? {}
+                this.recommendation = data.recommendation ?? ''
+            }
+            this.compute()
+        },
+
+        /* ---------------------------
+           HELPERS (UI REHYDRATION)
+        ---------------------------- */
+        getStatus(subId) {
+            return this.evaluations[subId]?.status ?? null
+        },
+
+        getScore(subId) {
+            return this.evaluations[subId]?.score ?? ''
+        },
+
+        /* ---------------------------
+           SELECT
+        ---------------------------- */
+        select(subId, status, score) {
+
+            if (score === '' || score === null) return
+
+            this.evaluations[subId] = {
+                status,
+                score: score === 'NA' ? null : parseInt(score)
+            }
+
+            this.compute()
+            this.save()
+        },
+
+        /* ---------------------------
+           COMPUTE
+        ---------------------------- */
+        compute() {
+
+            let totals = {
+                available: 0,
+                inadequate: 0,
+                not_available: 0,
+                not_applicable: 0
+            }
+
+            let totalScore = 0
+            let applicableCount = 0
+
+            Object.values(this.evaluations).forEach(item => {
+
+                totals[item.status]++
+
+                if (item.status !== 'not_applicable') {
+                    totalScore += item.score
+                    applicableCount++
+                }
+            })
+
+            this.totals = totals
+
+            this.mean = applicableCount
+                ? (totalScore / applicableCount).toFixed(2)
+                : '0.00'
+
+            if (this.mean < 2.5) {
+                this.recommendation =
+                    'The area needs significant improvement to meet accreditation requirements.'
+            } else if (this.mean < 3.5) {
+                this.recommendation =
+                    'The area generally complies but improvements are recommended.'
+            } else {
+                this.recommendation =
+                    'The area meets accreditation standards and is ready for survey.'
+            }
+        },
+
+        /* ---------------------------
+           SAVE
+        ---------------------------- */
+        save() {
+            localStorage.setItem(this.storageKey, JSON.stringify({
+                evaluations: this.evaluations,
+                recommendation: this.recommendation
+            }))
+        },
+
+        /* ---------------------------
+           CLEAR (OPTIONAL)
+        ---------------------------- */
+        clearAll() {
+            localStorage.removeItem(this.storageKey)
+            this.evaluations = {}
+            this.recommendation = ''
+            this.compute()
+        }
+
+    }))
+})
+</script>
+
 @endsection

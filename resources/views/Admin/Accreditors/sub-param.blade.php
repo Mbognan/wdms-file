@@ -17,38 +17,39 @@
         <p class="text-muted mb-4">
             Upload documents for this sub-parameter
         </p>
-
+        
         {{-- Upload Card --}}
         <div class="card mb-4">
-            <div class="card-body">
+            @if (auth()->user()->user_type === "ADMIN" || auth()->user()->user_type === "TASK FORCE")
+                <div class="card-body">
+                    <form
+                        action="{{ route('subparam.uploads.store', [
+                            'subParameter' => $subParameter->id,
+                            'infoId' => $infoId,
+                            'levelId' => $levelId,
+                            'programId' => $programId,
+                            'programAreaId' => $programAreaId,
+                        ]) }}"
+                        method="POST" enctype="multipart/form-data">
+                        @csrf
 
-                <form
-                    action="{{ route('subparam.uploads.store', [
-                        'subParameter' => $subParameter->id,
-                        'infoId' => $infoId,
-                        'levelId' => $levelId,
-                        'programId' => $programId,
-                        'programAreaId' => $programAreaId,
-                    ]) }}"
-                    method="POST" enctype="multipart/form-data">
-                    @csrf
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Upload Files</label>
+                            <input type="file" name="files[]" class="form-control" multiple required>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Upload Files</label>
-                        <input type="file" name="files[]" class="form-control" multiple required>
+                            <small class="text-muted">
+                                Multiple files allowed (PDF, DOCX, Images).
+                            </small>
+                        </div>
 
-                        <small class="text-muted">
-                            Multiple files allowed (PDF, DOCX, Images).
-                        </small>
-                    </div>
-
-                    <button class="btn btn-primary">
-                        <i class="bx bx-upload me-1"></i> Upload
-                    </button>
-                </form>
+                        <button class="btn btn-primary">
+                            <i class="bx bx-upload me-1"></i> Upload
+                        </button>
+                    </form>
 
 
-            </div>
+                </div>  
+            @endif
         </div>
 
         {{-- Uploaded Files --}}
@@ -107,7 +108,5 @@
                 </table>
             </div>
         </div>
-
-
     </div>
 @endsection

@@ -17,6 +17,7 @@ use App\Models\ADMIN\ProgramAreaMapping;
 use App\Models\ADMIN\SubParameter;
 use App\Models\AreaEvaluation;
 use App\Models\User;
+use App\Enums\UserType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -28,12 +29,12 @@ class AdminAcreditationController extends Controller
     {
         $user = auth()->user();
 
-        $isAdmin = $user?->user_type === 'ADMIN';
-        $isInternalAccessor = $user?->user_type === 'INTERNAL_ACCESSOR';
+        $isAdmin = $user?->user_type === UserType::ADMIN;
+        $isInternalAssessor = $user?->user_type === UserType::INTERNAL_ASSESSOR;
 
         return view(
             'admin.accreditors.acrreditation',
-            compact('isAdmin', 'isInternalAccessor')
+            compact('isAdmin', 'isInternalAssessor')
         );
     }
 
@@ -59,6 +60,7 @@ class AdminAcreditationController extends Controller
                 'year' => \Carbon\Carbon::parse($request->date)->year,
                 'status' => 'ongoing',
                 'accreditation_body_id' => $body->id,
+                'accreditation_date' => $request->date
             ]);
 
             // Level (SINGLE)
@@ -204,7 +206,7 @@ class AdminAcreditationController extends Controller
     public function getAccreditations()
     {
         $user = auth()->user();
-        $isAdmin = $user->user_type === 'ADMIN';
+        $isAdmin = $user->user_type === UserType::ADMIN;
 
         $levelOrder = [
             'PRELIMINARY' => 1,
@@ -292,7 +294,7 @@ class AdminAcreditationController extends Controller
     public function showProgram($infoId, $levelId, $programName)
     {
         $user = auth()->user();
-        $isAdmin = $user->user_type === 'ADMIN';
+        $isAdmin = $user->user_type === UserType::ADMIN;
 
         $levelName = AccreditationLevel::where('id', $levelId)->value('level_name');
 
@@ -332,7 +334,7 @@ class AdminAcreditationController extends Controller
 
 
         if ($isAdmin) {
-            // ✅ ADMIN: see all areas
+            // ADMIN: see all areas
             $programAreas = ProgramAreaMapping::with('users')
                 ->where('info_level_program_mapping_id', $program->id)
                 ->get();
@@ -640,7 +642,7 @@ class AdminAcreditationController extends Controller
             ->firstOrFail();
 
         $parameters = $programArea->parameters;
-        $isAdmin = auth()->user()?->user_type === 'ADMIN';
+        $isAdmin = auth()->user()?->user_type === UserType::ADMIN;
         return view('admin.accreditors.parameter', compact(
             'infoId',
             'levelId',
@@ -769,7 +771,7 @@ class AdminAcreditationController extends Controller
         return back()->with('success', 'Files uploaded successfully.');
     }
 
-    //INTERNAL ACCESSOR
+    //INTERNAL ASSESSOR
  public function indexInternalAccessor()
 {
     $user = auth()->user();
@@ -777,9 +779,9 @@ class AdminAcreditationController extends Controller
     /**
      * USER ROLES
      */
-    $isAdmin = $user?->user_type === 'ADMIN';
-    $isInternalAccessor = $user?->user_type === 'INTERNAL_ACCESSOR';
-    $isAccreditor = $user?->user_type === 'ACCREDITOR';
+    $isAdmin = $user?->user_type === UserType::ADMIN;
+    $isInternalAssessor = $user?->user_type === UserType::INTERNAL_ASSESSOR;
+    $isAccreditor = $user?->user_type === UserType::ACCREDITOR;
 
     /**
      * UI FLAGS
@@ -811,7 +813,7 @@ class AdminAcreditationController extends Controller
         $totalAreas = $mapping->programAreas->count();
 
         /**
-         * ✅ COMPLETED PROGRAM AREAS
+         * COMPLETED PROGRAM AREAS
          * A program area is completed if it has
          * at least ONE evaluation with status = completed
          */
@@ -829,10 +831,10 @@ class AdminAcreditationController extends Controller
             : 0;
 
         /**
-         * 🚫 INTERNAL ACCESSORS:
+         * INTERNAL ASSESSORS:
          * Only see FULLY completed programs
          */
-        if ($isInternalAccessor && !$isAccreditor && $progress < 100) {
+        if ($isInternalAssessor && !$isAccreditor && $progress < 100) {
             continue;
         }
 
@@ -894,12 +896,12 @@ class AdminAcreditationController extends Controller
             'area',
             'users',
 
-            // 👇 latest evaluation per area
+            // latest evaluation per area
             'evaluations' => function ($q) {
                 $q->latest()->limit(1);
             },
 
-            // 👇 evaluator (internal accessor)
+            // evaluator (internal assessor)
             'evaluations.files.uploader',
         ])
             ->where('info_level_program_mapping_id', $context->id)
@@ -944,7 +946,7 @@ class AdminAcreditationController extends Controller
 
         // ================= AREA EVALUATION + FILES =================
         $evaluation = AreaEvaluation::with([
-            'files.uploader' // 👈 IMPORTANT for showing uploader name
+            'files.uploader' // IMPORTANT for showing uploader name
         ])
             ->where('program_area_mapping_id', $programAreaId)
             ->latest()
@@ -952,8 +954,8 @@ class AdminAcreditationController extends Controller
 
         // ================= USER ROLES =================
         $user = auth()->user();
-        $isAdmin = $user?->user_type === 'ADMIN';
-        $isInternalAccessor = $user?->user_type === 'INTERNAL_ACCESSOR';
+        $isAdmin = $user?->user_type === UserType::ADMIN;
+        $isInternalAssessor = $user?->user_type === UserType::INTERNAL_ASSESSOR;
 
         // ================= RETURN VIEW =================
         return view(
@@ -968,7 +970,7 @@ class AdminAcreditationController extends Controller
                 'parameters',
                 'evaluation',
                 'isAdmin',
-                'isInternalAccessor'
+                'isInternalAssessor'
             )
         );
     }

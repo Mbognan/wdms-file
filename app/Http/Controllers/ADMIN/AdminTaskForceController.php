@@ -162,8 +162,4 @@ class AdminTaskForceController extends Controller
             'assignmentHierarchy' => $assignmentHierarchy,
         ]);
     }
-
-
-
-
 }
