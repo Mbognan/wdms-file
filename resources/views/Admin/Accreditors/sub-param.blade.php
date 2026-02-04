@@ -1,6 +1,12 @@
 @extends('admin.layouts.master')
 
 @section('contents')
+
+@php
+    use App\Enums\UserType;
+    $user = auth()->user();
+@endphp
+
     <div class="container-xxl container-p-y">
 
         {{-- Breadcrumb --}}
@@ -20,7 +26,10 @@
         
         {{-- Upload Card --}}
         <div class="card mb-4">
-            @if (auth()->user()->user_type === "ADMIN" || auth()->user()->user_type === "TASK FORCE")
+            @if ($user->user_type === UserType::ADMIN 
+                    || $user->user_type === UserType::TASK_FORCE
+                    || $user->user_type === UserType::TASK_FORCE_CHAIR
+                )
                 <div class="card-body">
                     <form
                         action="{{ route('subparam.uploads.store', [
@@ -46,8 +55,6 @@
                             <i class="bx bx-upload me-1"></i> Upload
                         </button>
                     </form>
-
-
                 </div>  
             @endif
         </div>
@@ -86,15 +93,36 @@
 
                                 <td>
                                     <span class="badge bg-label-info">
-                                        {{ ucfirst($upload->uploader?->user_type ?? 'N/A') }}
+                                        {{ ucfirst($upload->uploader?->user_type?->value ?? 'N/A') }}
                                     </span>
                                 </td>
                                 <td>{{ $upload->created_at->format('M d, Y') }}</td>
-                                <td>
-                                    <a href="{{ Storage::url($upload->file_path) }}" target="_blank"
-                                        class="btn btn-sm btn-outline-primary">
-                                        View
+                                <td class="d-flex gap-1">
+
+                                    {{-- VIEW --}}
+                                    <a href="{{ Storage::url($upload->file_path) }}"
+                                    target="_blank"
+                                    class="btn btn-sm btn-outline-primary">
+                                        <i class="bx bx-show"></i>
                                     </a>
+
+                                    {{-- DELETE (only allowed roles) --}}
+                                    @if (
+                                        $user->user_type === UserType::ADMIN ||
+                                        $user->user_type === UserType::TASK_FORCE ||
+                                        $user->user_type === UserType::TASK_FORCE_CHAIR
+                                    )
+                                        <form action="{{ route('subparam.uploads.destroy', $upload->id) }}"
+                                            method="POST"
+                                            onsubmit="return confirm('Are you sure you want to delete this file?')">
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <button class="btn btn-sm btn-outline-danger">
+                                                <i class="bx bx-trash"></i>
+                                            </button>
+                                        </form>
+                                    @endif
                                 </td>
                             </tr>
                         @empty

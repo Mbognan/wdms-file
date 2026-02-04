@@ -17,6 +17,4 @@ class ProgramFinalVerdict extends Model
         'comments',
         'finalized_at',
     ];
-
-
 }

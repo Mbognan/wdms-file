@@ -81,7 +81,7 @@
             </li>
 
         {{-- ================= UNVERIFIED / NOT ACTIVE ================= --}}
-        @elseif ($user->user_type === UserType::UNVERIFIED_USER)
+        @elseif ($user->user_type === UserType::UNVERIFIED)
 
             <li class="menu-item disabled">
                 <span class="menu-link text-muted">
