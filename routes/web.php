@@ -87,6 +87,7 @@ Route::middleware('auth')->group(function () {
         [AdminAcreditationController::class, 'destroySubParameterUpload']
     )->name('subparam.uploads.destroy');
 
+
     Route::get(
         'admin/accreditations/{id}/edit',
         [AdminAcreditationController::class, 'edit']

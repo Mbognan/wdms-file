@@ -113,8 +113,7 @@
                                         $user->user_type === UserType::TASK_FORCE_CHAIR
                                     )
                                         <form action="{{ route('subparam.uploads.destroy', $upload->id) }}"
-                                            method="POST"
-                                            onsubmit="return confirm('Are you sure you want to delete this file?')">
+                                            method="POST">
                                             @csrf
                                             @method('DELETE')
 

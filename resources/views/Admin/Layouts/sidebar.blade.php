@@ -113,7 +113,13 @@
             <li class="menu-item {{ Route::is('internal-accessor.*') ? 'active' : '' }}">
                 <a href="{{ route('internal-accessor.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-badge-check"></i>
-                    <div>Internal Assessor Accreditation</div>
+                    <div>Accreditation</div>
+                </a>
+            </li>
+            <li class="menu-item {{ Route::is('program.areas.evaluation.*') ? 'active' : '' }}">
+                <a href="#" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-badge-check"></i>
+                    <div>Area Evaluation Summary</div>
                 </a>
             </li>
 

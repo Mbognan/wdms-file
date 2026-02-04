@@ -433,9 +433,6 @@ function programChildRow(info) {
     return html;
 }
 
-
-
-
 form.addEventListener('submit', function(e) {
     e.preventDefault();
 

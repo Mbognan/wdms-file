@@ -298,7 +298,7 @@ document.addEventListener('alpine:init', () => {
 
                 const data = await response.json()
 
-                alert(data.message)
+                showToast(data.message)
                 localStorage.removeItem(this.storageKey)
 
                 // Redijrect to evaluation summary
@@ -307,7 +307,7 @@ document.addEventListener('alpine:init', () => {
 
             } catch (e) {
                 console.error(e)
-                alert(e.message ?? 'Failed to save evaluation.')
+                showToast(e.message ?? 'Failed to save evaluation.')
             }
         }
     }))

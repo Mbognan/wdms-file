@@ -781,7 +781,7 @@ class AdminAcreditationController extends Controller
         if (Storage::disk('public')->exists($upload->file_path)) {
             Storage::disk('public')->delete($upload->file_path);
         }
-
+        
         // Delete database record
         $upload->delete();
 
