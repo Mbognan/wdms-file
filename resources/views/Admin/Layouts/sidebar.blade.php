@@ -56,6 +56,13 @@
                 </a>
             </li>
 
+            <li class="menu-item {{ Route::is('program.areas.*') ? 'active' : '' }}">
+                <a href="{{ route('program.areas.evaluations') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-clipboard"></i>
+                    <div>Evaluations</div>
+                </a>
+            </li>
+
             <li class="menu-item {{ Route::is('archive.*') ? 'active' : '' }}">
                 <a href="{{ route('archive.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-folder"></i>
@@ -77,6 +84,13 @@
                 <a href="{{ route('admin.accreditation.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-badge-check"></i>
                     <div>TASKFORCE Accreditation</div>
+                </a>
+            </li>
+
+            <li class="menu-item {{ Route::is('admin.evaluation.*') ? 'active' : '' }}">
+                <a href="#" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-clipboard"></i>
+                    <div>Evaluations</div>
                 </a>
             </li>
 
@@ -116,9 +130,9 @@
                     <div>Accreditation</div>
                 </a>
             </li>
-            <li class="menu-item {{ Route::is('program.areas.evaluation.*') ? 'active' : '' }}">
-                <a href="#" class="menu-link">
-                    <i class="menu-icon tf-icons bx bx-badge-check"></i>
+            <li class="menu-item {{ Route::is('program.areas.*') ? 'active' : '' }}">
+                <a href="{{ route('program.areas.evaluations') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-clipboard"></i>
                     <div>Area Evaluation Summary</div>
                 </a>
             </li>

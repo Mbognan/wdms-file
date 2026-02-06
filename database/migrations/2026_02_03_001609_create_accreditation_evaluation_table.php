@@ -26,15 +26,27 @@ return new class extends Migration
                 ->constrained('programs')
                 ->cascadeOnDelete();
 
+            $table->foreignId('area_id')
+                ->constrained('areas')
+                ->cascadeOnDelete();
+
+            // Who evaluated this area
             $table->foreignId('evaluated_by')
                 ->constrained('users')
                 ->restrictOnDelete();
 
             $table->timestamps();
 
+            // One evaluator can only evaluate the SAME area once
             $table->unique(
-                ['accred_info_id', 'program_id', 'level_id'],
-                'ae_info_program_level_unique'
+                [
+                    'accred_info_id',
+                    'program_id',
+                    'level_id',
+                    'area_id',
+                    'evaluated_by',
+                ],
+                'ae_unique_per_area_per_user'
             );
         });
     }

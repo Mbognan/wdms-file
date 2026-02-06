@@ -18,6 +18,7 @@ class AccreditationEvaluation extends Model
         'accred_info_id',
         'level_id',
         'program_id',
+        'area_id',
         'evaluated_by',
     ];
 
@@ -55,5 +56,10 @@ class AccreditationEvaluation extends Model
             AreaRecommendation::class,
             'evaluation_id'
         );
+    }
+
+    public function getWasUpdatedAttribute(): bool
+    {
+        return $this->updated_at && $this->updated_at->gt($this->created_at);
     }
 }

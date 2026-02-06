@@ -4,10 +4,11 @@
 <div class="container-xxl flex-grow-1 container-p-y">
 
     @php
+        use App\Enums\UserType;
         $user = auth()->user();
     @endphp
 
-    @if ($user->user_type === 'UNVERIFIED USER' && $user->status !== 'Active')
+    @if ($user->user_type === UserType::UNVERIFIED  && $user->status !== 'Active')
 
         <div class="row justify-content-center">
             <div class="col-md-8">

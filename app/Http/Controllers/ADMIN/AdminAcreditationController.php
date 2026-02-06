@@ -964,7 +964,7 @@ class AdminAcreditationController extends Controller
 
         // ================= EXISTING EVALUATION =================
         $evaluation = AreaEvaluation::with([
-            'ratings.subparameter',   // important
+            'ratings.subparameter',
             'files.uploader',
             'evaluator',
         ])

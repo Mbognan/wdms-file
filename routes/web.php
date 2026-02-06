@@ -112,12 +112,18 @@ Route::middleware('auth')->group(function () {
         [AdminAcreditationController::class, 'showProgramAreas']
         )->name('internal.accessor.program.areas');
         
+        
         Route::get(
-            '/program-areas/{infoId}/{levelId}/{programId}/{programAreaId}/evaluation',
+            '/evaluations',
+            [AccreditationEvaluationController::class, 'index']
+            )->name('program.areas.evaluations');
+            
+        Route::get(
+            '/program-areas/{infoId}/{levelId}/{programId}/{areaId}/evaluation',
             [AdminAcreditationController::class, 'showAreaEvaluation']
             )->name('program.areas.evaluation');
 
-       Route::get(
+        Route::get(
             '/evaluation/{evaluation}/area/{area}/summary',
             [AccreditationEvaluationController::class, 'show']
         )->name('program.areas.evaluation.summary');

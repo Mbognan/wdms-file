@@ -106,6 +106,37 @@
                 </button>
             </div>
 
+            <div class="mt-4 d-flex justify-content-between">
+
+            {{-- PREVIOUS AREA --}}
+            @if($prevArea)
+                <a
+                    href="{{ route('program.areas.evaluation.summary', [
+                        'evaluation' => $evaluation->id,
+                        'area'       => $prevArea->id
+                    ]) }}"
+                    class="btn btn-outline-secondary"
+                >
+                    ← {{ $prevArea->area_name }}
+                </a>
+            @else
+                <span></span>
+            @endif
+
+            {{-- NEXT AREA --}}
+            @if($nextArea)
+                <a
+                    href="{{ route('program.areas.evaluation.summary', [
+                        'evaluation' => $evaluation->id,
+                        'area'       => $nextArea->id
+                    ]) }}"
+                    class="btn btn-outline-primary"
+                >
+                    {{ $nextArea->area_name }} →
+                </a>
+            @endif
+        </div>
+
         </div>
     </div>
 </div>
