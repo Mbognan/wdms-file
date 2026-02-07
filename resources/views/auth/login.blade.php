@@ -59,11 +59,11 @@
                         <div class="app-brand justify-content-center mb-4">
                             <a href="{{ url('/') }}" class="app-brand-link gap-2">
                                 <span class="app-brand-logo demo">
-                                    <img src="{{ asset('assets/img/wdms/pit-logo-outlined.png') }}"
+                                    <img src="{{ asset('assets/img/wdms/cgs-logo-outlined.png') }}"
                                          alt="Logo"
                                          class="w-px-40 h-auto" />
                                 </span>
-                                <span class="app-brand-text demo text-body fw-bold ms-2">CGS</span>
+                                <span class="app-brand-text demo text-body fw-bold ms-2 text-uppercase">CGS</span>
                             </a>
                         </div>
                         <!-- /Logo -->

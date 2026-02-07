@@ -7,11 +7,11 @@
     <div class="app-brand demo">
         <a href="#" class="app-brand-link">
             <span class="app-brand-logo demo">
-                <img src="{{ asset('assets/img/wdms/pit-logo-outlined.png') }}"
+                <img src="{{ asset('assets/img/wdms/cgs-logo-outlined.png') }}"
                      alt="Pit Logo"
-                     class="w-px-40 h-auto" />
+                     class="w-px-50 h-auto" />
             </span>
-            <span class="app-brand-text demo menu-text fw-bold ms-2">WADMS</span>
+            <span class="app-brand-text demo menu-text fw-bold ms-2 text-uppercase">WADMS</span>
         </a>
 
         <a href="javascript:void(0);"
@@ -56,6 +56,13 @@
                 </a>
             </li>
 
+            <li class="menu-item {{ Route::is('program.areas.*') ? 'active' : '' }}">
+                <a href="{{ route('program.areas.evaluations') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-clipboard"></i>
+                    <div>Evaluations</div>
+                </a>
+            </li>
+
             <li class="menu-item {{ Route::is('archive.*') ? 'active' : '' }}">
                 <a href="{{ route('archive.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-folder"></i>
@@ -69,19 +76,26 @@
             <li class="menu-item {{ Route::is('dashboard') ? 'active' : '' }}">
                 <a href="{{ route('dashboard') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-collection"></i>
-                    <div>TASKFORCE DASHBOARD</div>
+                    <div>Dashboard</div>
                 </a>
             </li>
 
             <li class="menu-item {{ Route::is('admin.accreditation.*') ? 'active' : '' }}">
                 <a href="{{ route('admin.accreditation.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-badge-check"></i>
-                    <div>TASKFORCE Accreditation</div>
+                    <div>Accreditation</div>
+                </a>
+            </li>
+
+            <li class="menu-item {{ Route::is('program.areas.*') ? 'active' : '' }}">
+                <a href="{{ route('program.areas.evaluations') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-clipboard"></i>
+                    <div>Evaluations</div>
                 </a>
             </li>
 
         {{-- ================= UNVERIFIED / NOT ACTIVE ================= --}}
-        @elseif ($user->user_type === UserType::UNVERIFIED_USER)
+        @elseif ($user->user_type === UserType::UNVERIFIED)
 
             <li class="menu-item disabled">
                 <span class="menu-link text-muted">
@@ -113,7 +127,13 @@
             <li class="menu-item {{ Route::is('internal-accessor.*') ? 'active' : '' }}">
                 <a href="{{ route('internal-accessor.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-badge-check"></i>
-                    <div>Internal Assessor Accreditation</div>
+                    <div>Accreditation</div>
+                </a>
+            </li>
+            <li class="menu-item {{ Route::is('program.areas.*') ? 'active' : '' }}">
+                <a href="{{ route('program.areas.evaluations') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-clipboard"></i>
+                    <div>Evaluations</div>
                 </a>
             </li>
 
@@ -127,10 +147,10 @@
                 </a>
             </li>
 
-            <li class="menu-item {{ Route::is('archive.*') ? 'active' : '' }}">
-                <a href="{{ route('archive.index') }}" class="menu-link">
+            <li class="menu-item {{ Route::is('program.areas.*', 'evaluations.*') ? 'active' : '' }}">
+                <a href="{{ route('program.areas.evaluations') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-folder"></i>
-                    <div>Archive</div>
+                    <div>Evaluations</div>
                 </a>
             </li>
 

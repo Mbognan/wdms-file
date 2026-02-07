@@ -65,7 +65,7 @@
                         <!-- Search -->
                         <div class="navbar-nav align-items-center">
                             <div class="nav-item d-flex align-items-center">
-                                WADMS
+                                WEB-BASED ACCREDITATION DOCUMENT MANAGEMENT SYSTEM
                             </div>
                         </div>
 
@@ -168,6 +168,7 @@
  <div class="toast-container position-fixed top-0 end-0 p-3" id="globalToastContainer"  style="z-index: 2000;"></div>
 <!-- Core JS -->
 <script src="{{ asset('assets/vendor/libs/jquery/jquery.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <link rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css">
 <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>

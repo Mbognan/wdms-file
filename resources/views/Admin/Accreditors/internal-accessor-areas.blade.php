@@ -43,6 +43,14 @@
     .status-not_started { background: #6b7280; color: #fff; }
     .status-ongoing     { background: #f59e0b; color: #fff; }
     .status-completed   { background: #16a34a; color: #fff; }
+
+    .view-eval-btn {
+        margin-top: 10px;
+        font-size: 13px;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
 </style>
 
 <div class="container-xxl container-p-y">
@@ -86,7 +94,7 @@
                             default => 'status-not_started'
                         };
 
-                        // Internal accessor name (from uploaded file)
+                        // Internal assessor name (from uploaded file)
                         $evaluatorName = $evaluation?->files->first()?->uploader?->name;
                     @endphp
 
@@ -95,7 +103,7 @@
                             'program.areas.evaluation',
                             [$infoId, $levelId, $programId, $mapping->area->id]
                         ) }}"
-                        class="text-decoration-none text-dark">
+                           class="text-decoration-none text-dark">
 
                             <div class="card h-100 shadow-sm">
 
@@ -129,13 +137,12 @@
                                     </div>
 
                                     {{-- EVALUATED BY --}}
-                                    <small class="text-muted d-block">
+                                    <small class="text-muted d-block mb-2">
                                         Evaluated by:
                                         <strong>
                                             {{ $evaluatorName ?? '—' }}
                                         </strong>
                                     </small>
-
                                 </div>
                             </div>
                         </a>

@@ -21,6 +21,7 @@ use App\Enums\UserType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class AdminAcreditationController extends Controller
 {
@@ -771,6 +772,23 @@ class AdminAcreditationController extends Controller
         return back()->with('success', 'Files uploaded successfully.');
     }
 
+    public function destroySubParameterUpload(AccreditationDocuments $upload)
+    {
+        // Optional: authorization check
+        // abort_if(Auth::id() !== $upload->upload_by && !Auth::user()->isAdmin(), 403);
+
+        // Delete file from storage
+        if (Storage::disk('public')->exists($upload->file_path)) {
+            Storage::disk('public')->delete($upload->file_path);
+        }
+        
+        // Delete database record
+        $upload->delete();
+
+        return back()->with('success', 'File deleted successfully.');
+    }
+
+
     //INTERNAL ASSESSOR
  public function indexInternalAccessor()
 {
@@ -834,7 +852,7 @@ class AdminAcreditationController extends Controller
          * INTERNAL ASSESSORS:
          * Only see FULLY completed programs
          */
-        if ($isInternalAssessor && !$isAccreditor && $progress < 100) {
+        if ($isInternalAssessor && !$isAccreditor && $totalAreas === 0) {
             continue;
         }
 
@@ -864,7 +882,7 @@ class AdminAcreditationController extends Controller
         'admin.accreditors.internal-accessor',
         compact(
             'isAdmin',
-            'isInternalAccessor',
+            'isInternalAssessor',
             'isAccreditationUI',
             'canEvaluate',
             'data'
@@ -944,9 +962,11 @@ class AdminAcreditationController extends Controller
         // ================= PARAMETERS =================
         $parameters = $programArea->parameters;
 
-        // ================= AREA EVALUATION + FILES =================
+        // ================= EXISTING EVALUATION =================
         $evaluation = AreaEvaluation::with([
-            'files.uploader' // IMPORTANT for showing uploader name
+            'ratings.subparameter',
+            'files.uploader',
+            'evaluator',
         ])
             ->where('program_area_mapping_id', $programAreaId)
             ->latest()
@@ -957,23 +977,24 @@ class AdminAcreditationController extends Controller
         $isAdmin = $user?->user_type === UserType::ADMIN;
         $isInternalAssessor = $user?->user_type === UserType::INTERNAL_ASSESSOR;
 
+        // ================= STATE FLAGS =================
+        $isEvaluated = !is_null($evaluation);
+        $isLocked = $isEvaluated && !$isAdmin;
+
         // ================= RETURN VIEW =================
-        return view(
-            'admin.accreditors.internal-accessor-parameter',
-            compact(
-                'infoId',
-                'levelId',
-                'programId',
-                'programAreaId',
-                'context',
-                'programArea',
-                'parameters',
-                'evaluation',
-                'isAdmin',
-                'isInternalAssessor'
-            )
-        );
+        return view('admin.accreditors.internal-accessor-parameter', compact(
+            'infoId',
+            'levelId',
+            'programId',
+            'programAreaId',
+            'context',
+            'programArea',
+            'parameters',
+            'evaluation',
+            'isEvaluated',
+            'isLocked',
+            'isAdmin',
+            'isInternalAssessor'
+        ));
     }
-
-
 }

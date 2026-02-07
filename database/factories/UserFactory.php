@@ -22,7 +22,7 @@ class UserFactory extends Factory
 
             'user_type' => $this->faker->randomElement([
                 'UNVERIFIED USER',
-                'DEAN',
+                'ADMIN',
                 'TASK FORCE',
                 'TASK FORCE CHAIR',
                 'INTERNAL ASSESSOR',

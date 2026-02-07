@@ -243,7 +243,7 @@
                                                                                                             <td>{{ $sub['name'] }}
                                                                                                             </td>
                                                                                                             <td>
-                                                                                                                <a href="{{ asset($doc['file_path']) }}"
+                                                                                                                <a href="{{ Storage::url($doc['file_path']) }}"
                                                                                                                     target="_blank">
                                                                                                                     {{ $doc['file_name'] }}
                                                                                                                 </a>
@@ -255,7 +255,7 @@
                                                                                                                 </span>
                                                                                                             </td>
                                                                                                             <td>
-                                                                                                                <a href="{{ asset($doc['file_path']) }}"
+                                                                                                                <a href="{{ Storage::url($doc['file_path']) }}"
                                                                                                                     target="_blank"
                                                                                                                     class="btn btn-sm btn-outline-primary">
                                                                                                                     View

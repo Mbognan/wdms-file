@@ -1,0 +1,65 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use App\Models\ADMIN\AccreditationInfo;
+use App\Models\ADMIN\AccreditationLevel;
+use App\Models\ADMIN\Program;
+use App\Models\User;
+use App\Models\SubparameterRating;
+
+class AccreditationEvaluation extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'accred_info_id',
+        'level_id',
+        'program_id',
+        'area_id',
+        'evaluated_by',
+    ];
+
+    public function accreditationInfo()
+    {
+        return $this->belongsTo(AccreditationInfo::class, 'accred_info_id');
+    }
+
+    public function level()
+    {
+        return $this->belongsTo(AccreditationLevel::class, 'level_id');
+    }
+
+    public function program()
+    {
+        return $this->belongsTo(Program::class, 'program_id');
+    }
+
+    public function evaluator()
+    {
+        return $this->belongsTo(User::class, 'evaluated_by');
+    }
+
+    public function subparameterRatings()
+    {
+        return $this->hasMany(
+            SubparameterRating::class,
+            'evaluation_id'
+        );
+    }
+
+    public function areaRecommendations()
+    {
+        return $this->hasMany(
+            AreaRecommendation::class,
+            'evaluation_id'
+        );
+    }
+
+    public function getWasUpdatedAttribute(): bool
+    {
+        return $this->updated_at && $this->updated_at->gt($this->created_at);
+    }
+}

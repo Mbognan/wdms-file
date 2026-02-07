@@ -7,6 +7,7 @@ use App\Http\Controllers\ADMIN\AdminTaskForceController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AccreditationEvaluationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -81,6 +82,12 @@ Route::middleware('auth')->group(function () {
         [AdminAcreditationController::class, 'assignUsersToArea']
     )->name('areas.assign.users');
 
+    Route::delete(
+        '/subparam/uploads/{upload}',
+        [AdminAcreditationController::class, 'destroySubParameterUpload']
+    )->name('subparam.uploads.destroy');
+
+
     Route::get(
         'admin/accreditations/{id}/edit',
         [AdminAcreditationController::class, 'edit']
@@ -93,44 +100,59 @@ Route::middleware('auth')->group(function () {
 
 
     //INTERNAL ACCESSOR
-
+    
     Route::get(
-        '/internal-accessor',
+        '/internal-assessor',
         [AdminAcreditationController::class, 'indexInternalAccessor']
     )->name('internal-accessor.index');
 
+    
+    Route::get(
+        '/internal-assessor/{accreditation}/{level}/{program}/areas',
+        [AdminAcreditationController::class, 'showProgramAreas']
+        )->name('internal.accessor.program.areas');
+        
+        
+    Route::get(
+        '/evaluations',
+        [AccreditationEvaluationController::class, 'index']
+        )->name('program.areas.evaluations');
+        
+    Route::get(
+        '/program-areas/{infoId}/{levelId}/{programId}/{programAreaId}/evaluation',
+        [AdminAcreditationController::class, 'showAreaEvaluation']
+        )->name('program.areas.evaluation');
 
+    Route::get(
+        '/evaluations/{evaluation}/area/{area}/summary',
+        [AccreditationEvaluationController::class, 'show']
+    )->name('program.areas.evaluations.summary');
+        
+    Route::post(
+        '/accreditation-evaluations',
+        [AccreditationEvaluationController::class, 'store']
+    )->name('accreditation-evaluations.store');
 
-Route::get(
-    '/internal-accessor/{accreditation}/{level}/{program}/areas',
-    [AdminAcreditationController::class, 'showProgramAreas']
-)->name('internal.accessor.program.areas');
+    Route::post(
+        '/admin/evaluations/{infoId}/{levelId}/{programId}/{programAreaId}',
+        [AccreditationController::class, 'store']
+    )->name('area.evaluations.store');
+    Route::post(
+        '/internal/final-verdict',
+        [AccreditationController::class, 'storeFinalVerdict']
+    )->name('internal.final.verdict.store');
 
-Route::get(
-    '/program-areas/{infoId}/{levelId}/{programId}/{programAreaId}/evaluation',
-    [AdminAcreditationController::class, 'showAreaEvaluation']
-)->name('program.areas.evaluation');
+    // FINAL VERDICT
+    Route::get('/', [ArchiveController::class, 'index'])
+        ->name('archive.index');
 
-Route::post(
-    '/admin/evaluations/{infoId}/{levelId}/{programId}/{programAreaId}',
-    [AccreditationController::class, 'store']
-)->name('area.evaluations.store');
-Route::post(
-    '/internal/final-verdict',
-    [AccreditationController::class, 'storeFinalVerdict']
-)->name('internal.final.verdict.store');
+    // Completed accreditations
+    Route::get('/completed', [ArchiveController::class, 'completed'])
+        ->name('archive.completed');
 
-// FINAL VERDICT
- Route::get('/', [ArchiveController::class, 'index'])
-            ->name('archive.index');
-
-        // 📁 Completed accreditations
-        Route::get('/completed', [ArchiveController::class, 'completed'])
-            ->name('archive.completed');
-
-        // 🗑 Deleted / Withdrawn accreditations
-        Route::get('/deleted', [ArchiveController::class, 'deleted'])
-            ->name('deleted');
+    // 🗑 Deleted / Withdrawn accreditations
+    Route::get('/deleted', [ArchiveController::class, 'deleted'])
+        ->name('deleted');
 });
 
 require __DIR__ . '/auth.php';
