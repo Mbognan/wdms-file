@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+
+.btn.btn-primary,
+.btn-primary:not(.disabled):not(:disabled) {
+  background-color: #028313ff !important;
+  border-color: #028313ff !important;
+}

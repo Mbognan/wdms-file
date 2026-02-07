@@ -344,8 +344,20 @@ document.addEventListener('alpine:init', () => {
             })
 
             const data = await response.json()
+
+            if (!response.ok) {
+               showToast(data.message ?? 'Something went wrong.', 'error')
+                return
+            }
+
+            if (!data.redirect) {
+                showToast(`Missing data: ${data}`, 'error');
+                return
+            }
+
             localStorage.removeItem(this.storageKey)
             window.location.href = data.redirect
+
         }
     }))
 })

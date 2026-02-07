@@ -31,6 +31,77 @@
     </div>
 </div>
 
+<div class="modal fade" id="assignRoleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Assign Role</h5>
+                <button type="button" class="btn-close"
+                        data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <input type="hidden" id="verify-user-id">
+
+                <div class="mb-3">
+                    <label class="form-label">User Role</label>
+                    <select id="user-role" class="form-select">
+                        <option value="">-- Select Role --</option>
+                        <option value="TASK FORCE">Task Force</option>
+                        <option value="INTERNAL ASSESSOR">Internal Assessor</option>
+                        <option value="ACCREDITOR">Accreditor</option>
+                    </select>
+
+                    <div id="role-error"
+                         class="text-danger small mt-1 d-none">
+                        Please select a role.
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                    Cancel
+                </button>
+
+                <button class="btn btn-success" id="confirm-verify">
+                    Verify User
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="verifySuccessModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title text-success">
+                    Verification Successful
+                </h5>
+            </div>
+
+            <div class="modal-body text-center">
+                <i class="bx bx-check-circle text-success fs-1 mb-3"></i>
+                <p class="mb-0" id="success-message">
+                    User verified successfully.
+                </p>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-primary"
+                        data-bs-dismiss="modal">
+                    OK
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -59,95 +130,80 @@ $(function () {
             },
             {
                 data: 'created_at',
-                render: date => {
-                    const d = new Date(date);
-                    return d.toLocaleString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true
-                    });
-                }
+                render: date => new Date(date).toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                })
             },
             {
                 data: null,
                 orderable: false,
                 searchable: false,
-                className: 'text-center align-middle',
+                className: 'text-center',
                 render: row => `
-                    <div class="d-flex justify-content-center gap-2">
-                        <button class="btn btn-sm btn-success btn-verify"
-                                data-id="${row.id}"
-                                title="Verify">
-                            <i class="bx bx-check"></i>
-                        </button>
-
-                        <button class="btn btn-sm btn-danger btn-suspend"
-                                data-id="${row.id}"
-                                data-url="/users/${row.id}/suspend"
-                                title="Suspend">
-                            <i class="bx bx-trash"></i>
-                        </button>
-                    </div>
+                    <button class="btn btn-sm btn-success btn-verify"
+                            data-id="${row.id}">
+                        <i class="bx bx-check"></i>
+                    </button>
                 `
             }
         ]
     });
 
-    // VERIFY USER WITH ROLE SELECTION
+    // OPEN ASSIGN ROLE MODAL
     $(document).on('click', '.btn-verify', function () {
-        const id = $(this).data('id');
+        $('#verify-user-id').val($(this).data('id'));
+        $('#user-role').val('');
+        $('#role-error').addClass('d-none');
 
-        Swal.fire({
-            title: 'Assign role to this user',
-            input: 'select',
-            inputOptions: {
-                'TASK FORCE': 'Task Force',
-                'INTERNAL ASSESSOR': 'Internal Assessor',
-                'ACCREDITOR':'Accreditor'
-            },
-            inputPlaceholder: 'Select a role',
-            inputValidator: value => {
-                if (!value) return 'You must select a role';
-            },
-            showCancelButton: true,
-            confirmButtonText: 'Verify user',
-        }).then(result => {
-            if (!result.isConfirmed) return;
-
-            $.ajax({
-                url: `/users/${id}/verify`,
-                type: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                data: {
-                    user_type: result.value
-                },
-                success: res => {
-                    table.ajax.reload(null, false);
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Verified!',
-                        text: res.message,
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                },
-                error: xhr => {
-                    Swal.fire(
-                        'Error',
-                        xhr.responseJSON?.message ?? 'Verification failed',
-                        'error'
-                    );
-                }
-            });
-        });
+        new bootstrap.Modal('#assignRoleModal').show();
     });
 
+    // CONFIRM VERIFICATION
+    $('#confirm-verify').on('click', function () {
+        const userId = $('#verify-user-id').val();
+        const role = $('#user-role').val();
+
+        if (!role) {
+            $('#role-error').removeClass('d-none');
+            return;
+        }
+
+        $('#role-error').addClass('d-none');
+
+        $.ajax({
+            url: `/users/${userId}/verify`,
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            data: { user_type: role },
+
+            success: res => {
+                bootstrap.Modal.getInstance(
+                    document.getElementById('assignRoleModal')
+                ).hide();
+
+                $('#success-message').text(res.message);
+
+                new bootstrap.Modal('#verifySuccessModal').show();
+
+                table.ajax.reload(null, false);
+            },
+
+            error: xhr => {
+                $('#role-error')
+                    .removeClass('d-none')
+                    .text(xhr.responseJSON?.message ?? 'Verification failed.');
+            }
+        });
+    });
 });
+
 </script>
 
 @endpush

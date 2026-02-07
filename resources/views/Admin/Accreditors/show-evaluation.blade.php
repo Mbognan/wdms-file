@@ -91,7 +91,7 @@
             {{-- RECOMMENDATION --}}
             <div class="mt-4">
                 <label class="fw-bold">Recommendations</label>
-                <textarea class="form-control" rows="4" disabled>
+                <textarea class="form-control no-resize" rows="4" disabled>
 {{ $evaluation->areaRecommendations->first()?->recommendation }}
                 </textarea>
             </div>
@@ -111,7 +111,7 @@
             {{-- PREVIOUS AREA --}}
             @if($prevArea)
                 <a
-                    href="{{ route('program.areas.evaluation.summary', [
+                    href="{{ route('program.areas.evaluations.summary', [
                         'evaluation' => $evaluation->id,
                         'area'       => $prevArea->id
                     ]) }}"
@@ -126,7 +126,7 @@
             {{-- NEXT AREA --}}
             @if($nextArea)
                 <a
-                    href="{{ route('program.areas.evaluation.summary', [
+                    href="{{ route('program.areas.evaluations.summary', [
                         'evaluation' => $evaluation->id,
                         'area'       => $nextArea->id
                     ]) }}"
