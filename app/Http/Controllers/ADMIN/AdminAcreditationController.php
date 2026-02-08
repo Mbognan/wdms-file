@@ -94,16 +94,16 @@ class AdminAcreditationController extends Controller
 
     public function show($id)
     {
-        $accreditation = AccreditationInfo::with('accreditationBody')
-            ->findOrFail($id);
+        $accreditation = AccreditationInfo::with('accreditationBody')->findOrFail($id);
 
-        return response()->json([
-            'id' => $accreditation->id,
-            'title' => $accreditation->title,
-            'date' => $accreditation->year . '-01-01',
-            'visit_type' => $accreditation->visit_type,
-            'accreditation_body' => $accreditation->accreditationBody->name,
-            'status' => $accreditation->status,
+        $levels = InfoLevelProgramMapping::with(['level', 'program'])
+            ->where('accreditation_info_id', $id)
+            ->get()
+            ->groupBy('level_id');
+
+        return view('admin.accreditors.show-accreditation', [
+            'accreditation' => $accreditation,
+            'levels' => $levels,
         ]);
     }
 
@@ -131,6 +131,7 @@ class AdminAcreditationController extends Controller
             'title' => 'required|string',
             'date' => 'required|date',
             'accreditation_body' => 'required|string',
+            'visit_type' => ['required', Rule::enum(VisitType::class)]
         ]);
 
         DB::transaction(function () use ($request, $id) {

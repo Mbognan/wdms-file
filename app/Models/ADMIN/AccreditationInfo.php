@@ -19,6 +19,7 @@ class AccreditationInfo extends Model
     
     protected $casts = [
         'status' => AccreditationStatus::class,
+        'accreditation_date' => 'date'
     ];
 
     public function finalVerdicts()

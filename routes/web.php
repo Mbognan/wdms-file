@@ -102,7 +102,7 @@ Route::middleware('auth')->group(function () {
     Route::put(
         '/admin/accreditations/{id}',
         [AdminAcreditationController::class, 'update']
-    );
+    )->name('admin.accreditations.update');
 
 
     //INTERNAL ACCESSOR
