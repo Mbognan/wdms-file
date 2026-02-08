@@ -30,7 +30,7 @@
                     <div class="d-flex align-items-center mb-3">
                         <i class="bx bx-certification bx-lg text-primary me-3"></i>
                         <div>
-                            <h5 class="mb-0">{{ $accreditation->title }}</h5>
+                            <h5 class="mb-0" id="accreditationTitle">{{ $accreditation->title }}</h5>
                             <small class="text-muted">Accreditation ID: #{{ $accreditation->id }}</small>
                         </div>
                     </div>
@@ -38,31 +38,30 @@
                     <div class="row g-3 mt-2">
                         <div class="col-md-6">
                             <small class="text-muted d-block">Accreditation Body</small>
-                            <span class="fw-semibold">{{ $accreditation->accreditationBody->name }}</span>
+                            <span class="fw-semibold" id="accreditationBody">{{ $accreditation->accreditationBody->name }}</span>
                         </div>
 
                         <div class="col-md-6">
                             <small class="text-muted d-block">Visit Type</small>
-                            <span class="badge bg-label-info text-capitalize">
+                            <span class="badge bg-label-info text-capitalize" id="visitType">
                                 {{ $accreditation->visit_type }}
                             </span>
                         </div>
 
                         <div class="col-md-6">
                             <small class="text-muted d-block">Accreditation Date</small>
-                            <span class="fw-semibold">
+                            <span class="fw-semibold" id="accreditationDate">
                                 {{ optional($accreditation->accreditation_date)->format('F d, Y') }}
                             </span>
                         </div>
 
                         <div class="col-md-6">
                             <small class="text-muted d-block">Status</small>
-                            <span class="badge bg-label-success text-capitalize">
+                            <span class="badge bg-label-success text-capitalize" id="accreditationStatus">
                                 {{ $accreditation->status->value }}
                             </span>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
@@ -232,6 +231,7 @@
                         <input type="date"
                                name="date"
                                class="form-control"
+                               id="accreditationDate"
                                value="{{ optional($accreditation->accreditation_date)->format('Y-m-d') }}">
                     </div>
 
@@ -267,48 +267,51 @@
 
 @push('scripts')
 <script>
-document.getElementById('editAccreditationForm').addEventListener('submit', async function (e) {
-    e.preventDefault();
+$(document).ready(function () {
 
-    const form = e.target;
-    const formData = new FormData(form);
+    $('#editAccreditationForm').on('submit', function (e) {
+        e.preventDefault();
 
-    try {
-        const response = await fetch(
-            "{{ route('admin.accreditations.update', $accreditation->id) }}",
-            {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json'
-                },
-                body: formData
+        let form = $(this);
+        let formData = new FormData(this);
+
+        $.ajax({
+            url: "{{ route('admin.accreditations.update', $accreditation->id) }}",
+            type: "POST",
+            data: formData,
+            processData: false, 
+            contentType: false,
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            success: function (res) {
+
+                // Update page instantly
+                $('#accreditationTitle').text(res.data.title);
+                $('#accreditationBody').text(res.data.accreditation_body);
+                $('#visitType').text(res.data.visit_type);
+                $('#accreditationDate').text(res.data.accreditation_date);
+
+                // Close modal
+                $('#editAccreditationModal').modal('hide');
+
+                showToast(res.message);
+            },
+            error: function (xhr) {
+
+                if (xhr.status === 422) {
+                    let errors = xhr.responseJSON.errors;
+                    let messages = Object.values(errors).flat().join('\n');
+                    showToast(messages, 'error');
+                } else {
+                    showToast('Something went wrong.', 'error');
+                }
             }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) throw data;
-
-        // Success
-        showToast(data.message);
-
-        // Close modal
-        bootstrap.Modal.getInstance(
-            document.getElementById('editAccreditationModal')
-        ).hide();
-
-        // Reload page to reflect changes
-        location.reload();
-
-    } catch (error) {
-        if (error.errors) {
-            showToast(Object.values(error.errors).flat().join('\n'), 'error');
-        } else {
-            showToast('Something went wrong.', 'error');
-        }
-    }
+        });
+    });
 });
 </script>
 @endpush
+
 

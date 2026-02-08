@@ -131,12 +131,15 @@ class AdminAcreditationController extends Controller
             'title' => 'required|string',
             'date' => 'required|date',
             'accreditation_body' => 'required|string',
-            'visit_type' => ['required', Rule::enum(VisitType::class)]
+            'visit_type' => ['required', Rule::enum(VisitType::class)],
         ]);
 
-        DB::transaction(function () use ($request, $id) {
+        $accreditation = null;
+        $body = null;
 
-            // Accreditation Body (same as store)
+        DB::transaction(function () use ($request, $id, &$accreditation, &$body) {
+
+            // Accreditation Body
             $body = AccreditationBody::firstOrCreate([
                 'name' => $request->accreditation_body
             ]);
@@ -149,15 +152,23 @@ class AdminAcreditationController extends Controller
                 'year' => Carbon::parse($request->date)->year,
                 'accreditation_body_id' => $body->id,
                 'accreditation_date' => $request->date,
-                'visit_type' => $request->visit_type
+                'visit_type' => $request->visit_type,
             ]);
         });
 
         return response()->json([
             'success' => true,
-            'message' => 'Accreditation updated successfully.'
+            'message' => 'Accreditation updated successfully.',
+            'data' => [
+                'title' => $accreditation->title,
+                'visit_type' => $accreditation->visit_type,
+                'accreditation_body' => $body->name,
+                'accreditation_date' =>
+                    optional($accreditation->accreditation_date)->format('F d, Y'),
+            ]
         ]);
     }
+
 
     public function addLevelWithPrograms(Request $request)
     {
