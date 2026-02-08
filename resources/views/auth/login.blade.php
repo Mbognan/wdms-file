@@ -14,7 +14,7 @@
         content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
     />
 
-    <title>Login - CGS</title>
+    <title>Sign In - CGS</title>
     <meta name="description" content="" />
 
     <!-- Favicon -->
@@ -68,8 +68,8 @@
                         </div>
                         <!-- /Logo -->
 
-                        <h4 class="mb-2 text-center">Welcome Back!</h4>
-                        <p class="mb-4 text-center">Please sign in to your account and start your session</p>
+                        <h4 class="mb-2 text-center fw-bold">Sign In</h4>
+                        <p class="mb-4 text-center">Please sign in to your account and start your session.</p>
 
                         <!-- Session Status -->
                         @if (session('status'))
