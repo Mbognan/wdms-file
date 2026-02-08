@@ -45,7 +45,8 @@ Route::middleware('auth')->group(function () {
         ->name('admin.accreditation.index');
     Route::post('/admin/accreditations', [AdminAcreditationController::class, 'store'])
         ->name('admin.accreditations.store');
-    Route::get('/admin/accreditations/data', [AdminAcreditationController::class, 'getAccreditations'])->name('admin.accreditations.data');
+    Route::get('/admin/accreditations/data', [AdminAcreditationController::class, 'getAccreditations'])
+        ->name('admin.accreditations.data');
     Route::post(
         '/admin/accreditations/add-level-programs',
         [AdminAcreditationController::class, 'addLevelWithPrograms']
@@ -89,12 +90,17 @@ Route::middleware('auth')->group(function () {
 
 
     Route::get(
-        'admin/accreditations/{id}/edit',
+        '/admin/accreditations/{id}/edit',
         [AdminAcreditationController::class, 'edit']
     );
 
+    Route::get(
+        '/admin/accreditations/{id}',
+        [AdminAcreditationController::class, 'show']
+    );
+
     Route::put(
-        'admin/accreditations/{id}',
+        '/admin/accreditations/{id}',
         [AdminAcreditationController::class, 'update']
     );
 

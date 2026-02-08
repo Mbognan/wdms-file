@@ -203,6 +203,7 @@
         </form>
     </div>
 </div>
+
 <div class="modal fade" id="editAccreditationModal" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-md modal-dialog-centered">
         <form id="editAccreditationForm" class="modal-content">
@@ -212,7 +213,7 @@
             <input type="hidden" name="id" id="edit_id">
 
             <div class="modal-header">
-                <h5 class="modal-title">Edit Accreditation</h5>
+                <h5 class="modal-title">Edit Accreditation Info</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
 
@@ -242,14 +243,12 @@
                         <option value="online">Online</option>
                     </select>
                 </div>
-
             </div>
 
             <div class="modal-footer">
-                <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
                 <button class="btn btn-primary" type="submit">Update Accreditation</button>
             </div>
-
         </form>
     </div>
 </div>
@@ -313,46 +312,46 @@ form.addEventListener('submit', function(e) {
 /* ================= DATATABLE ROWS ================= */
 function accreditationRow(info) {
     return `
-<tr class="accred-row" data-id="${info.id}">
-    <td>
-        <i class="bx bx-certification bx-sm text-primary me-3"></i>
-        <span class="fw-medium">${info.title}</span>
-    </td>
-    <td>${info.year}</td>
-    <td>
-        <span class="badge bg-label-primary">${info.programs.length} Programs</span>
-    </td>
-    <td>
-        <span class="badge bg-label-success me-1">Active</span>
-    </td>
-    <td>
-        <div class="dropdown">
-            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                <i class="bx bx-dots-vertical-rounded"></i>
-            </button>
-            <div class="dropdown-menu">
-                <a class="dropdown-item expand-programs" href="#"><i class="bx bx-list-ul me-1"></i> View Programs</a>
-                <a class="dropdown-item" href="/admin/accreditations/${info.id}"><i class="bx bx-folder-open me-1"></i> Open</a>
+        <tr class="accred-row" data-id="${info.id}">
+            <td>
+                <i class="bx bx-certification bx-sm text-primary me-3"></i>
+                <span class="fw-medium">${info.title}</span>
+            </td>
+            <td>${info.year}</td>
+            <td>
+                <span class="badge bg-label-primary">${info.programs.length} Programs</span>
+            </td>
+            <td>
+                <span class="badge bg-label-success me-1">Active</span>
+            </td>
+            <td>
+                <div class="dropdown">
+                    <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                        <i class="bx bx-dots-vertical-rounded"></i>
+                    </button>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item expand-programs" href="#"><i class="bx bx-collection me-1"></i> View Level & Programs</a>
+                        <a class="dropdown-item" href="/admin/accreditations/${info.id}"><i class="bx bx-detail me-1"></i> View Details </a>
 
-                <!-- ✅ Add Level / Program -->
-                 ${isAdmin ? `
-                <!-- Add Level / Program (only for admins) -->
-                <a class="dropdown-item add-level-program" href="#"
-                   data-bs-toggle="modal" data-bs-target="#addLevelProgramModal"
-                   data-info-id="${info.id}">
-                   <i class="bx bx-plus me-1"></i> Add Level / Program
-                </a>
-                 <a class="dropdown-item edit-accreditation"
-                   href="#"
-                   data-id="${info.id}">
-                    <i class="bx bx-edit me-1"></i> Edit Accreditation
-                </a>
-` : ''}
-            </div>
-        </div>
-    </td>
-</tr>
-`;
+                        <!-- Add Level / Program -->
+                        ${isAdmin ? `
+                        <!-- Add Level / Program (only for admins) -->
+                        <a class="dropdown-item add-level-program" href="#"
+                        data-bs-toggle="modal" data-bs-target="#addLevelProgramModal"
+                        data-info-id="${info.id}">
+                        <i class="bx bx-plus me-1"></i> Add Level / Program
+                        </a>
+                        <a class="dropdown-item edit-accreditation"
+                        href="#"
+                        data-id="${info.id}">
+                            <i class="bx bx-edit me-1"></i> Edit Accreditation Info
+                        </a>
+        ` : ''}
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `;
 }
 
 function programChildRow(info) {

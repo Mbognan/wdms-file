@@ -3,29 +3,33 @@
 namespace App\Models\ADMIN;
 
 use App\Models\ProgramFinalVerdict;
+use App\Enums\AccreditationStatus;
 use Illuminate\Database\Eloquent\Model;
 
 class AccreditationInfo extends Model
 {
-     protected $fillable = [
+    protected $fillable = [
         'title',
         'year',
         'status',
+        'visit_type',
+        'accreditation_date',
         'accreditation_body_id',
-        'accreditation_date'
     ];
-// App\Models\AccreditationInfo.php
+    
+    protected $casts = [
+        'status' => AccreditationStatus::class,
+    ];
 
-public function finalVerdicts()
-{
-    return $this->hasMany(ProgramFinalVerdict::class, 'accred_info_id');
-}
+    public function finalVerdicts()
+    {
+        return $this->hasMany(ProgramFinalVerdict::class, 'accred_info_id');
+    }
 
-   public function accreditationBody()
-{
-    return $this->belongsTo(AccreditationBody::class, 'accreditation_body_id');
-}
-
+    public function accreditationBody()
+    {
+        return $this->belongsTo(AccreditationBody::class, 'accreditation_body_id');
+    }
 
     public function levels()
     {
@@ -33,5 +37,17 @@ public function finalVerdicts()
             AccreditationLevel::class,
             'accreditation_info_level'
         );
+    }
+
+    /* ===================== Helpers ===================== */
+
+    public function isOngoing(): bool
+    {
+        return $this->status === AccreditationStatus::ONGOING;
+    }
+
+    public function isCompleted(): bool
+    {
+        return $this->status === AccreditationStatus::COMPLETED;
     }
 }

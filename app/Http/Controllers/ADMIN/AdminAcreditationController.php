@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\ADMIN;
 
+use App\Enums\VisitType;
 use App\Http\Controllers\Controller;
 use App\Models\ADMIN\AccreditationAssignment;
 use App\Models\ADMIN\AccreditationBody;
@@ -22,6 +23,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
+use Illuminate\Validation\Rule;
 
 class AdminAcreditationController extends Controller
 {
@@ -46,6 +49,7 @@ class AdminAcreditationController extends Controller
             'title' => 'required',
             'date' => 'required|date',
             'accreditation_body' => 'required',
+            'visit_type' => ['required', Rule::enum(VisitType::class)]
         ]);
 
         DB::transaction(function () use ($request) {
@@ -58,8 +62,9 @@ class AdminAcreditationController extends Controller
             // Accreditation Info
             $accreditation = AccreditationInfo::create([
                 'title' => $request->title,
-                'year' => \Carbon\Carbon::parse($request->date)->year,
+                'year' => Carbon::parse($request->date)->year,
                 'status' => 'ongoing',
+                'visit_type' => $request->visit_type,
                 'accreditation_body_id' => $body->id,
                 'accreditation_date' => $request->date
             ]);
@@ -96,11 +101,29 @@ class AdminAcreditationController extends Controller
             'id' => $accreditation->id,
             'title' => $accreditation->title,
             'date' => $accreditation->year . '-01-01',
+            'visit_type' => $accreditation->visit_type,
             'accreditation_body' => $accreditation->accreditationBody->name,
             'status' => $accreditation->status,
         ]);
     }
 
+    public function edit($id)
+    {
+        $accreditation = AccreditationInfo::with('accreditationBody')->findOrFail($id);
+
+        return response()->json([
+            'id' => $accreditation->id,
+            'title' => $accreditation->title,
+
+            'date' => $accreditation->accreditation_date
+                ? Carbon::parse($accreditation->accreditation_date)->format('Y-m-d')
+                : null,
+
+            'accreditation_body' => $accreditation->accreditationBody?->name,
+
+            'visit_type' => strtolower($accreditation->visit_type),
+        ]);
+    }
 
     public function update(Request $request, $id)
     {
@@ -122,8 +145,10 @@ class AdminAcreditationController extends Controller
 
             $accreditation->update([
                 'title' => $request->title,
-                'year' => \Carbon\Carbon::parse($request->date)->year,
+                'year' => Carbon::parse($request->date)->year,
                 'accreditation_body_id' => $body->id,
+                'accreditation_date' => $request->date,
+                'visit_type' => $request->visit_type
             ]);
         });
 
