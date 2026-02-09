@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ADMIN\AccreditationProgramController;
 use App\Http\Controllers\ADMIN\AccreditationController;
 use App\Http\Controllers\ADMIN\ACREDITATIONCONTROLLER;
 use App\Http\Controllers\ADMIN\AdminAcreditationController;
@@ -55,6 +56,16 @@ Route::middleware('auth')->group(function () {
         '/admin/accreditations/add-program',
         [AdminAcreditationController::class, 'addProgramOnly']
     )->name('admin.accreditations.addProgram');
+
+    Route::patch(
+        '/admin/accreditations/program/{mapping}',
+        [AccreditationProgramController::class, 'update']
+    )->name('admin.accreditations.program.update');
+
+    Route::delete(
+        '/admin/accreditations/program/{mapping}',
+        [AccreditationProgramController::class, 'destroy']
+    )->name('admin.accreditations.program.destroy');
 
     Route::get(
         '/admin/accreditations/{infoId}/level/{levelId}/program/{programName}',

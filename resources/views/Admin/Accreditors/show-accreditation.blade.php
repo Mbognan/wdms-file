@@ -120,7 +120,10 @@
                                     type="button"
                                     data-bs-toggle="collapse"
                                     data-bs-target="#collapse{{ $level->id }}">
-                                <span class="fw-semibold">{{ $level->level_name }}</span>
+                                <span class="fw-semibold level-title"
+                                      data-level-id="{{ $level->id }}">
+                                    {{ $items->first()->level_label ?? $level->level_name }}
+                                </span>
                                 <span class="badge bg-label-primary ms-3">
                                     {{ $items->count() }} Programs
                                 </span>
@@ -130,13 +133,6 @@
                         <div id="collapse{{ $level->id }}" class="accordion-collapse collapse">
                             <div class="accordion-body pt-2">
 
-                                {{-- LEVEL ACTIONS --}}
-                                <div class="d-flex justify-content-end gap-2 mb-3">
-                                    <button class="btn btn-sm btn-outline-primary">
-                                        <i class="bx bx-edit"></i> Edit Level
-                                    </button>
-                                </div>
-
                                 {{-- PROGRAM LIST --}}
                                 <div class="list-group list-group-flush">
                                     @foreach($items as $mapping)
@@ -144,7 +140,9 @@
                                             <span>{{ $mapping->program->program_name }}</span>
 
                                             <div class="d-flex gap-2">
-                                                <button class="btn btn-xs btn-outline-primary">
+                                                <button class="btn btn-xs btn-outline-primary edit-program-btn"
+                                                        data-mapping-id="{{ $mapping->id }}"
+                                                        data-current-name="{{ $mapping->program->program_name }}">
                                                     <i class="bx bx-edit"></i>
                                                 </button>
 
@@ -263,6 +261,43 @@
         </form>
     </div>
 </div>
+
+{{-- ================= EDIT PROGRAM MODAL ================= --}}
+<div class="modal fade" id="editProgramModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form id="editProgramForm" class="modal-content">
+            @csrf
+            @method('PUT')
+
+            <input type="hidden" name="mapping_id" id="editProgramMappingId">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Program</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <label class="form-label">Program Name</label>
+                <input type="text"
+                       name="program_name"
+                       id="editProgramName"
+                       class="form-control"
+                       required>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        data-bs-dismiss="modal">
+                    Cancel
+                </button>
+                <button class="btn btn-primary">
+                    Save
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -310,6 +345,58 @@ $(document).ready(function () {
             }
         });
     });
+
+    // ================= EDIT PROGRAM OPEN MODAL =================
+    $(document).on('click', '.edit-program-btn', function () {
+
+        let mappingId = $(this).data('mapping-id');
+        let currentName = $(this).data('current-name');
+
+        $('#editProgramMappingId').val(mappingId);
+        $('#editProgramName').val(currentName);
+
+        $('#editProgramModal').modal('show');
+    });
+
+    // ================= EDIT PROGRAM SUBMIT =================
+    $('#editProgramForm').on('submit', function (e) {
+    e.preventDefault();
+    
+    let mappingId = $('#editProgramMappingId').val(); 
+    let formData = new FormData(this);
+    formData.append('_method', 'PATCH');
+
+    $.ajax({
+        url: `/admin/accreditations/program/${mappingId}`,
+        method: "POST",
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
+        },
+        success: function (res) {
+            $('[data-mapping-id="' + res.data.mapping_id + '"]')
+                .closest('.list-group-item')
+                .find('span:first')
+                .text(res.data.program_name);
+
+            $('#editProgramModal').modal('hide');
+            showToast(res.message);
+        },
+        error: function (xhr) {
+            if (xhr.status === 422) {
+                let errors = Object.values(xhr.responseJSON.errors)
+                    .flat()
+                    .join('\n');
+                showToast(errors, 'error');
+            } else {
+                showToast('Something went wrong.', 'error');
+            }
+        }
+    });
+});
 });
 </script>
 @endpush

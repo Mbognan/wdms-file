@@ -330,8 +330,8 @@ function accreditationRow(info) {
                         <i class="bx bx-dots-vertical-rounded"></i>
                     </button>
                     <div class="dropdown-menu">
-                        <a class="dropdown-item expand-programs" href="#"><i class="bx bx-collection me-1"></i> View Level & Programs</a>
                         <a class="dropdown-item" href="/admin/accreditations/${info.id}"><i class="bx bx-detail me-1"></i> View Details </a>
+                        <a class="dropdown-item expand-programs" href="#"><i class="bx bx-collection me-1"></i> View Level & Programs</a>
 
                         <!-- Add Level / Program -->
                         ${isAdmin ? `
