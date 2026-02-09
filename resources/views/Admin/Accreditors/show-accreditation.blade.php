@@ -146,14 +146,12 @@
                                                     <i class="bx bx-edit"></i>
                                                 </button>
 
-                                                <form method="POST"
-                                                      action="#">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button class="btn btn-xs btn-outline-danger">
-                                                        <i class="bx bx-trash"></i>
-                                                    </button>
-                                                </form>
+                                                <button type="button"
+                                                        class="btn btn-xs btn-outline-danger delete-program-btn"
+                                                        data-mapping-id="{{ $mapping->id }}"
+                                                        data-program-name="{{ $mapping->program->program_name }}">
+                                                    <i class="bx bx-trash"></i>
+                                                </button>
                                             </div>
                                         </div>
                                     @endforeach
@@ -298,105 +296,162 @@
         </form>
     </div>
 </div>
+
+{{-- ================= DELETE PROGRAM MODAL ================= --}}
+<div class="modal fade" id="deleteProgramModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">
+                    Delete Program
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <p class="mb-0">
+                    Are you sure you want to delete
+                    <strong id="deleteProgramName"></strong>?
+                </p>
+                <small class="text-muted">
+                    This action cannot be undone.
+                </small>
+
+                <input type="hidden" id="deleteProgramMappingId">
+            </div>
+
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        data-bs-dismiss="modal">
+                    Cancel
+                </button>
+                <button type="button"
+                        class="btn btn-danger"
+                        id="confirmDeleteProgram">
+                    Delete
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
 <script>
 $(document).ready(function () {
 
+    // ================= EDIT ACCREDITATION =================
     $('#editAccreditationForm').on('submit', function (e) {
         e.preventDefault();
 
-        let form = $(this);
         let formData = new FormData(this);
 
         $.ajax({
             url: "{{ route('admin.accreditations.update', $accreditation->id) }}",
             type: "POST",
             data: formData,
-            processData: false, 
+            processData: false,
             contentType: false,
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                 'Accept': 'application/json'
             },
             success: function (res) {
-
-                // Update page instantly
                 $('#accreditationTitle').text(res.data.title);
                 $('#accreditationBody').text(res.data.accreditation_body);
                 $('#visitType').text(res.data.visit_type);
                 $('#accreditationDate').text(res.data.accreditation_date);
 
-                // Close modal
                 $('#editAccreditationModal').modal('hide');
-
                 showToast(res.message);
             },
-            error: function (xhr) {
-
-                if (xhr.status === 422) {
-                    let errors = xhr.responseJSON.errors;
-                    let messages = Object.values(errors).flat().join('\n');
-                    showToast(messages, 'error');
-                } else {
-                    showToast('Something went wrong.', 'error');
-                }
+            error: function () {
+                showToast('Something went wrong.', 'error');
             }
         });
     });
 
     // ================= EDIT PROGRAM OPEN MODAL =================
     $(document).on('click', '.edit-program-btn', function () {
-
-        let mappingId = $(this).data('mapping-id');
-        let currentName = $(this).data('current-name');
-
-        $('#editProgramMappingId').val(mappingId);
-        $('#editProgramName').val(currentName);
-
+        $('#editProgramMappingId').val($(this).data('mapping-id'));
+        $('#editProgramName').val($(this).data('current-name'));
         $('#editProgramModal').modal('show');
     });
 
     // ================= EDIT PROGRAM SUBMIT =================
     $('#editProgramForm').on('submit', function (e) {
-    e.preventDefault();
-    
-    let mappingId = $('#editProgramMappingId').val(); 
-    let formData = new FormData(this);
-    formData.append('_method', 'PATCH');
+        e.preventDefault();
 
-    $.ajax({
-        url: `/admin/accreditations/program/${mappingId}`,
-        method: "POST",
-        data: formData,
-        processData: false,
-        contentType: false,
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Accept': 'application/json'
-        },
-        success: function (res) {
-            $('[data-mapping-id="' + res.data.mapping_id + '"]')
-                .closest('.list-group-item')
-                .find('span:first')
-                .text(res.data.program_name);
+        let mappingId = $('#editProgramMappingId').val();
+        let formData = new FormData(this);
+        formData.append('_method', 'PATCH');
 
-            $('#editProgramModal').modal('hide');
-            showToast(res.message);
-        },
-        error: function (xhr) {
-            if (xhr.status === 422) {
-                let errors = Object.values(xhr.responseJSON.errors)
-                    .flat()
-                    .join('\n');
-                showToast(errors, 'error');
-            } else {
+        $.ajax({
+            url: `/admin/accreditations/program/${mappingId}`,
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            success: function (res) {
+                $('[data-mapping-id="' + res.data.mapping_id + '"]')
+                    .closest('.list-group-item')
+                    .find('span:first')
+                    .text(res.data.program_name);
+
+                $('#editProgramModal').modal('hide');
+                showToast(res.message);
+            },
+            error: function () {
                 showToast('Something went wrong.', 'error');
             }
-        }
+        });
+    }); // ✅ FIXED
+
+    // ================= DELETE PROGRAM OPEN MODAL =================
+    $(document).on('click', '.delete-program-btn', function () {
+        $('#deleteProgramMappingId').val($(this).data('mapping-id'));
+        $('#deleteProgramName').text($(this).data('program-name'));
+        $('#deleteProgramModal').modal('show');
     });
-});
+
+    // ================= CONFIRM DELETE PROGRAM =================
+    $('#confirmDeleteProgram').on('click', function () {
+        let mappingId = $('#deleteProgramMappingId').val();
+
+        $.ajax({
+            url: `/admin/accreditations/program/${mappingId}`,
+            type: 'POST',
+            data: {
+                _method: 'DELETE',
+                _token: '{{ csrf_token() }}'
+            },
+            headers: {
+                'Accept': 'application/json'
+            },
+            success: function (res) {
+                $('[data-mapping-id="' + mappingId + '"]')
+                    .closest('.list-group-item')
+                    .fadeOut(300, function () {
+                        $(this).remove();
+                    });
+
+                $('#deleteProgramModal').modal('hide');
+                showToast(res.message);
+            },
+            error: function () {
+                showToast('Failed to delete program.', 'error');
+            }
+        });
+    });
+
 });
 </script>
 @endpush
