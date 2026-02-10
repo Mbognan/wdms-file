@@ -44,6 +44,17 @@
 </head>
 
 <body>
+<style>
+
+.swal2-container {
+    z-index: 99999 !important;
+}
+
+
+.swal2-backdrop-show {
+    background: rgba(0, 0, 0, 0.6) !important;
+}
+</style>
 
 <!-- Layout wrapper -->
 <div class="layout-wrapper layout-content-navbar">
@@ -164,8 +175,6 @@
 
 
 
-</div>
- <div class="toast-container position-fixed top-0 end-0 p-3" id="globalToastContainer"  style="z-index: 2000;"></div>
 <!-- Core JS -->
 <script src="{{ asset('assets/vendor/libs/jquery/jquery.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -191,6 +200,7 @@
 <script async defer src="https://buttons.github.io/buttons.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
 
 <script>
 function showToast(message, type = 'success') {
@@ -227,7 +237,8 @@ function showToast(message, type = 'success') {
     });
 }
 
-$(document).on('click', '.btn-suspend', function () {
+
+$(document).on('click', '.btn-terminate', function () {
 
     const button = $(this);
     const userId = button.data('id');
@@ -235,12 +246,12 @@ $(document).on('click', '.btn-suspend', function () {
 
     Swal.fire({
         title: "Are you sure?",
-        text: "You won't be able to revert this!",
+        text: "This user will be terminated and cannot access the system!",
         icon: "warning",
         showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "Yes, suspend it!"
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, terminate user"
     }).then((result) => {
 
         if (!result.isConfirmed) return;
@@ -256,15 +267,15 @@ $(document).on('click', '.btn-suspend', function () {
             },
             success: function (res) {
 
-                // Reload DataTable if exists
-                if ($.fn.DataTable.isDataTable('#users-table')) {
-                    $('#users-table').DataTable().ajax.reload(null, false);
+                // Reload DataTable
+                if ($.fn.DataTable.isDataTable('#taskforce-table')) {
+                    $('#taskforce-table').DataTable().ajax.reload(null, false);
                 }
 
                 Swal.fire({
-                    title: "Suspended!",
-                    text: res.message ?? "User suspended successfully.",
                     icon: "success",
+                    title: "Terminated!",
+                    text: res.message ?? "User terminated successfully",
                     timer: 2000,
                     showConfirmButton: false
                 });
@@ -272,7 +283,7 @@ $(document).on('click', '.btn-suspend', function () {
             error: function () {
                 Swal.fire(
                     "Error",
-                    "Failed to suspend user.",
+                    "Failed to terminate user.",
                     "error"
                 );
             },
@@ -282,6 +293,9 @@ $(document).on('click', '.btn-suspend', function () {
         });
     });
 });
+
+
+
 </script>
 
 @if(session('success'))
@@ -300,10 +314,69 @@ $(document).on('click', '.btn-suspend', function () {
 </script>
 @endif
 
+<script>
+$(document).on('click', '.btn-terminate', function () {
+
+    const button = $(this);
+    const userId = button.data('id');
+    const url = button.data('url');
+
+    Swal.fire({
+        title: "Are you sure?",
+        text: "This user will be terminated and cannot access the system!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, terminate user"
+    }).then((result) => {
+
+        if (!result.isConfirmed) return;
+
+        $.ajax({
+            url: url,
+            type: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            beforeSend: function () {
+                button.prop('disabled', true);
+            },
+            success: function (res) {
+
+                // Reload DataTable
+                if ($.fn.DataTable.isDataTable('#taskforce-table')) {
+                    $('#taskforce-table').DataTable().ajax.reload(null, false);
+                }
+
+                Swal.fire({
+                    icon: "success",
+                    title: "Terminated!",
+                    text: res.message ?? "User terminated successfully",
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            },
+            error: function () {
+                Swal.fire(
+                    "Error",
+                    "Failed to terminate user.",
+                    "error"
+                );
+            },
+            complete: function () {
+                button.prop('disabled', false);
+            }
+        });
+    });
+});
+</script>
 
 
 @stack('scripts')
 
+</div>
+ <div class="toast-container position-fixed top-0 end-0 p-3" id="globalToastContainer"  style="z-index: 2000;"></div>
 </body>
 </html>
 
