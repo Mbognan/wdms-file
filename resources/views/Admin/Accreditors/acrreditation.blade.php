@@ -330,8 +330,8 @@ function accreditationRow(info) {
                         <i class="bx bx-dots-vertical-rounded"></i>
                     </button>
                     <div class="dropdown-menu">
-                        <a class="dropdown-item expand-programs" href="#"><i class="bx bx-collection me-1"></i> View Level & Programs</a>
                         <a class="dropdown-item" href="/admin/accreditations/${info.id}"><i class="bx bx-detail me-1"></i> View Details </a>
+                        <a class="dropdown-item expand-programs" href="#"><i class="bx bx-collection me-1"></i> View Level & Programs</a>
 
                         <!-- Add Level / Program -->
                         ${isAdmin ? `
@@ -358,9 +358,12 @@ function programChildRow(info) {
     const grouped = {};
 
     info.programs.forEach(p => {
+        console.log(p);
         if (!grouped[p.level]) grouped[p.level] = [];
         grouped[p.level].push(p);
     });
+
+    console.log(grouped);
 
     let html = `
 <tr class="program-child bg-light">
@@ -410,11 +413,11 @@ function programChildRow(info) {
         `;
 
         grouped[level].forEach(p => {
-            html += `
-<a href="/admin/accreditations/${info.id}/level/${p.level_id}/program/${encodeURIComponent(p.name)}"
-   class="list-group-item list-group-item-action py-2">
-   ${p.name}
-</a>`;
+        html += `
+            <a href="/admin/accreditations/${info.id}/${p.level_id}/${p.id}}"
+            class="list-group-item list-group-item-action py-2">
+                ${p.name}
+            </a>`;
         });
 
         html += `
