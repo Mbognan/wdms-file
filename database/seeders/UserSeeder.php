@@ -10,27 +10,36 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Create Dean (ACTIVE)
+        // Create Admin/IQA Account
         User::create([
-            'name' => 'CGS Dean',
-            'email' => 'cgsdean@example.com',
+            'name' => '',
+            'email' => '@example.com',
             'password' => Hash::make('password'),
             'user_type' => 'ADMIN',
             'status' => 'Active',
             'email_verified_at' => now(),
         ]);
 
-        // Create Task Force Chair (ACTIVE)
+        // Create Dean (ACTIVE)
         User::create([
-            'name' => 'Janet S. Aclao',
-            'email' => 'janet@example.com',
+            'name' => 'Jennifer Gorumba',
+            'email' => 'jennifer@example.com',
             'password' => Hash::make('password'),
-            'user_type' => 'TASK FORCE CHAIR',
+            'user_type' => 'DEAN',
             'status' => 'Active',
             'email_verified_at' => now(),
         ]);
 
-        // Create Task Force Member (ACTIVE)
+        // Create Task Force
+        User::create([
+            'name' => 'Geryl Cataraja',
+            'email' => 'geryl@example.com',
+            'password' => Hash::make('password'),
+            'user_type' => 'TASK FORCE',
+            'status' => 'Active',
+            'email_verified_at' => now(),
+        ]);
+
         User::create([
             'name' => 'Ruby Mary G. Encenzo',
             'email' => 'ruby@example.com',
@@ -42,8 +51,8 @@ class UserSeeder extends Seeder
 
         // Create Internal Assessor (ACTIVE)
         User::create([
-            'name' => 'Carol O. Laurente',
-            'email' => 'carol@example.com',
+            'name' => 'Levi Esmero',
+            'email' => 'levi@example.com',
             'password' => Hash::make('password'),
             'user_type' => 'INTERNAL ASSESSOR',
             'status' => 'Active',
@@ -52,18 +61,24 @@ class UserSeeder extends Seeder
 
         // Create Accreditor (ACTIVE)
         User::create([
-            'name' => 'Romil L. Asoque',
-            'email' => 'romil@example.com',
+            'name' => 'Janet Aclao',
+            'email' => 'janet@example.com',
             'password' => Hash::make('password'),
             'user_type' => 'ACCREDITOR',
             'status' => 'Active',
             'email_verified_at' => now(),
         ]);
         
-        // Create 18 Task Force users (ALL INACTIVE)
-        User::factory()->count(18)->create([
+        // Create 10 Task Force users
+        User::factory()->count(10)->create([
             'user_type' => 'TASK FORCE',
-            'status' => 'Inactive',
+            'status' => 'Active',
+        ]);
+
+        // Create 10 Internal Assessor users
+        User::factory()->count(10)->create([
+            'user_type' => 'INTERNAL ASSESSOR',
+            'status' => 'Active',
         ]);
     }
 }

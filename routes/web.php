@@ -57,6 +57,11 @@ Route::middleware('auth')->group(function () {
         [AdminAcreditationController::class, 'addProgramOnly']
     )->name('admin.accreditations.addProgram');
 
+    // Info, Level, Program Mapping Routes
+    Route::post(
+        '/admin/accreditations/programs',
+        [AccreditationProgramController::class, 'store']
+    )->name('admin.accreditations.program.store');
     Route::patch(
         '/admin/accreditations/program/{mapping}',
         [AccreditationProgramController::class, 'update']
@@ -66,9 +71,10 @@ Route::middleware('auth')->group(function () {
         '/admin/accreditations/program/{mapping}',
         [AccreditationProgramController::class, 'destroy']
     )->name('admin.accreditations.program.destroy');
+    // End
 
     Route::get(
-        '/admin/accreditations/{infoId}/level/{levelId}/program/{programName}',
+        '/admin/accreditations/{infoId}/{levelId}/{programId}',
         [AdminAcreditationController::class, 'showProgram']
     )->name('admin.accreditations.program');
     Route::post('/programs/{program}/areas/save', [AdminAcreditationController::class, 'saveAreas'])

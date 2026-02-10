@@ -75,7 +75,7 @@
                         <div class="card-body d-flex justify-content-between align-items-center">
                             <div>
                                 <small>Total Programs</small>
-                                <h4 class="mb-0">
+                                <h4 class="mb-0" id="totalProgramsCount">
                                     {{ $levels->sum(fn($items) => $items->count()) }}
                                 </h4>
                             </div>
@@ -124,7 +124,8 @@
                                       data-level-id="{{ $level->id }}">
                                     {{ $items->first()->level_label ?? $level->level_name }}
                                 </span>
-                                <span class="badge bg-label-primary ms-3">
+                                <span class="badge bg-label-primary ms-3 programs-count-badge"
+                                    data-level-id="{{ $level->id }}">
                                     {{ $items->count() }} Programs
                                 </span>
                             </button>
@@ -140,13 +141,25 @@
                                             <span>{{ $mapping->program->program_name }}</span>
 
                                             <div class="d-flex gap-2">
+                                                <a href="{{ route('admin.accreditations.program', [
+                                                        'infoId' => $accreditation->id,
+                                                        'levelId' => $level->id,
+                                                        'programId' => $mapping->program->id
+                                                    ]) }}"
+                                                    class="btn btn-xs btn-outline-info"
+                                                    data-bs-toggle="tooltip"
+                                                    title="View Areas">
+                                                    <i class="bx bx-sitemap"></i>
+                                                </a>
                                                 <button class="btn btn-xs btn-outline-primary edit-program-btn"
+                                                        title="Edit Program"
                                                         data-mapping-id="{{ $mapping->id }}"
                                                         data-current-name="{{ $mapping->program->program_name }}">
                                                     <i class="bx bx-edit"></i>
                                                 </button>
 
                                                 <button type="button"
+                                                        title="Delete Program"
                                                         class="btn btn-xs btn-outline-danger delete-program-btn"
                                                         data-mapping-id="{{ $mapping->id }}"
                                                         data-program-name="{{ $mapping->program->program_name }}">
@@ -158,9 +171,7 @@
                                 </div>
 
                                 {{-- ADD PROGRAM --}}
-                                <form class="mt-3"
-                                      method="POST"
-                                      action="#">
+                                <form class="mt-3 add-program-form">
                                     @csrf
                                     <input type="hidden" name="accreditation_info_id" value="{{ $accreditation->id }}">
                                     <input type="hidden" name="level_id" value="{{ $level->id }}">
@@ -176,12 +187,10 @@
                                         </button>
                                     </div>
                                 </form>
-
                             </div>
                         </div>
                     </div>
                 @endforeach
-
             </div>
         </div>
     </div>
@@ -375,6 +384,61 @@ $(document).ready(function () {
         });
     });
 
+    // ================= ADD PROGRAM =================
+    $(document).on('submit', '.add-program-form', function (e) {
+        e.preventDefault();
+
+        let form = $(this);
+        let formData = new FormData(this);
+
+        $.ajax({
+            url: "{{ route('admin.accreditations.program.store') }}",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            success: function (res) {
+                let newItem = `
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>${res.data.program_name}</span>
+
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-xs btn-outline-primary edit-program-btn"
+                                    data-mapping-id="${res.data.mapping_id}"
+                                    data-current-name="${res.data.program_name}">
+                                <i class="bx bx-edit"></i>
+                            </button>
+
+                            <button class="btn btn-xs btn-outline-danger delete-program-btn"
+                                    data-mapping-id="${res.data.mapping_id}"
+                                    data-program-name="${res.data.program_name}">
+                                <i class="bx bx-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                form.closest('.accordion-body')
+                    .find('.list-group')
+                    .append(newItem);
+
+                form.trigger('reset');
+                showToast(res.message);
+            },
+            error: function (xhr) {
+                if (xhr.status === 422 && xhr.responseJSON?.message) {
+                    showToast(xhr.responseJSON.message, 'warning');
+                } else {
+                    showToast('Failed to add program.', 'error');
+                }
+            }
+        });
+    });
+
     // ================= EDIT PROGRAM OPEN MODAL =================
     $(document).on('click', '.edit-program-btn', function () {
         $('#editProgramMappingId').val($(this).data('mapping-id'));
@@ -413,7 +477,7 @@ $(document).ready(function () {
                 showToast('Something went wrong.', 'error');
             }
         });
-    }); // ✅ FIXED
+    });
 
     // ================= DELETE PROGRAM OPEN MODAL =================
     $(document).on('click', '.delete-program-btn', function () {
