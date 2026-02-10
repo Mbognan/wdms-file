@@ -114,12 +114,6 @@ $(document).ready(function () {
 
                                 <a class="dropdown-item"
                                    href="javascript:void(0);"
-                                   onclick="assignUser(${row.id})">
-                                    <i class="bx bx-user-plus me-1"></i> Assign User
-                                </a>
-
-                                <a class="dropdown-item"
-                                   href="javascript:void(0);"
                                    onclick="updatePosition(${row.id})">
                                     <i class="bx bx-edit me-1"></i> Update Position
                                 </a>
@@ -127,11 +121,11 @@ $(document).ready(function () {
                                 <div class="dropdown-divider"></div>
 
                                 <a class="dropdown-item text-danger btn-terminate"
-   href="javascript:void(0);"
-   data-id="${row.id}"
-   data-url="{{ url('/users') }}/${row.id}/suspend">
-    <i class="bx bx-trash me-1"></i> Terminate User
-</a>
+                                    href="javascript:void(0);"
+                                    data-id="${row.id}"
+                                    data-url="{{ url('/users') }}/${row.id}/suspend">
+                                        <i class="bx bx-trash me-1"></i> Terminate User
+                                    </a>
 
                             </div>
                         </div>
