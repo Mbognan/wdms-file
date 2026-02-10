@@ -1,3 +1,10 @@
+@php
+    use App\Enums\UserType;
+    $taskForce = UserType::TASK_FORCE;
+    $internalAssessor = UserType::INTERNAL_ASSESSOR;
+    $accreditor = UserType::ACCREDITOR;
+@endphp
+
 @extends('admin.layouts.master')
 
 @section('contents')
@@ -10,7 +17,13 @@
 <div class="container-xxl flex-grow-1 container-p-y bg-footer-theme">
     <div class="card">
         <div class="card-header">
-            <h5>Pending / Suspended Users</h5>
+            <h5>
+                {{ 
+                    $isAdmin 
+                    ? 'Pending Internal Assessors and Accreditors Account'
+                    : 'Pending Task Forces Account'
+                }}
+            </h5>
         </div>
 
         <div class="card-body">
@@ -20,7 +33,7 @@
                         <th>ID</th>
                         <th>Name</th>
                         <th>Email</th>
-                        <th>User Type</th>
+                        <th>REQUESTED ROLE</th>
                         <th>Status</th>
                         <th>Registered At</th>
                         <th class="text-center">Action</th>
@@ -48,9 +61,9 @@
                     <label class="form-label">User Role</label>
                     <select id="user-role" class="form-select">
                         <option value="">-- Select Role --</option>
-                        <option value="TASK FORCE">Task Force</option>
-                        <option value="INTERNAL ASSESSOR">Internal Assessor</option>
-                        <option value="ACCREDITOR">Accreditor</option>
+                        <option value="{{ $taskForce }}">Task Force</option>
+                        <option value="{{ $internalAssessor }}">Internal Assessor</option>
+                        <option value="{{ $accreditor }}">Accreditor</option>
                     </select>
 
                     <div id="role-error"

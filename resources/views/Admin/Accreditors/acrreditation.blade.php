@@ -414,7 +414,7 @@ function programChildRow(info) {
 
         grouped[level].forEach(p => {
         html += `
-            <a href="/admin/accreditations/${info.id}/${p.level_id}/${p.id}}"
+            <a href="/admin/accreditations/${info.id}/level/${p.level_id}/program/${encodeURIComponent(p.name)}"
             class="list-group-item list-group-item-action py-2">
                 ${p.name}
             </a>`;

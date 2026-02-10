@@ -329,7 +329,7 @@ class AdminAcreditationController extends Controller
     }
 
 
-    public function showProgram($infoId, $levelId, $programId)
+    public function showProgram($infoId, $levelId, $programName)
     {
         $user = auth()->user();
         $isAdmin = $user->user_type === UserType::ADMIN;
@@ -339,8 +339,11 @@ class AdminAcreditationController extends Controller
         $program = InfoLevelProgramMapping::where([
             'accreditation_info_id' => $infoId,
             'level_id' => $levelId,
-            'program_id' => $programId,
-        ])->first();
+        ])
+            ->whereHas('program', function ($q) use ($programName) {
+                $q->where('program_name', $programName);
+            })
+            ->first();
 
         if (!$program) {
             abort(404, 'Program not found');
@@ -401,11 +404,11 @@ class AdminAcreditationController extends Controller
             'infoId' => $infoId,
             'level' => $levelName,
             'levelId' => $levelId,
-            'programId' => $programId,
-            'programName' => optional($program->program)->program_name,
-            'users' => $availableUsers,
+            'programName' => $programName,
+            'programId' => $program->program_id,
+            'users' => $availableUsers, // ✅ only users that can be assigned
             'programAreas' => $programAreas,
-            'assignedUserIds' => $assignedUserIds, 
+            'assignedUserIds' => $assignedUserIds, // for UI display
             'isAdmin' => $isAdmin,
         ]);
     }

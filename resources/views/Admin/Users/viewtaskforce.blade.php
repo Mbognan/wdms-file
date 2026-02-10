@@ -110,7 +110,7 @@
 
                                             {{-- USER TYPE --}}
                                             <div class="mb-3 col-md-6">
-                                                <label class="form-label">User Type</label>
+                                                <label class="form-label">Role</label>
                                                 <input class="form-control" value="{{ $user->user_type }}" disabled />
                                             </div>
 

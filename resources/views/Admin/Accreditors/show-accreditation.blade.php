@@ -144,7 +144,7 @@
                                                 <a href="{{ route('admin.accreditations.program', [
                                                         'infoId' => $accreditation->id,
                                                         'levelId' => $level->id,
-                                                        'programId' => $mapping->program->id
+                                                        'programName' => $mapping->program->program_name
                                                     ]) }}"
                                                     class="btn btn-xs btn-outline-info"
                                                     data-bs-toggle="tooltip"

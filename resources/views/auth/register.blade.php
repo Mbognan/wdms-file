@@ -1,3 +1,12 @@
+@php
+    use App\Enums\UserType;
+    $admin = UserType::ADMIN;
+    $dean = UserType::DEAN;
+    $taskForce = UserType::TASK_FORCE;
+    $internalAssessor = UserType::INTERNAL_ASSESSOR;
+    $accreditor = UserType::ACCREDITOR;
+@endphp
+
 <!DOCTYPE html>
 <html
     lang="en"
@@ -42,6 +51,23 @@
     <!-- Page CSS -->
     <link rel="stylesheet" href="{{ asset('assets/vendor/css/pages/page-auth.css') }}" />
 
+    <style>
+        /* Expand auth card width for two-column layout */
+        .auth-wide {
+            max-width: 900px !important;
+        }
+
+        .text-gold {
+            color: #D4AF37;
+        }
+
+        @media (max-width: 991.98px) {
+            .auth-wide {
+                max-width: 100% !important;
+            }
+        }
+    </style>
+
     <!-- Helpers -->
     <script src="{{ asset('assets/vendor/js/helpers.js') }}"></script>
     <script src="{{ asset('assets/js/config.js') }}"></script>
@@ -50,119 +76,172 @@
 <body>
 <div class="container-xxl">
     <div class="authentication-wrapper authentication-basic container-p-y">
-        <div class="authentication-inner">
+        <div class="authentication-inner auth-wide">
             <!-- Register Card -->
             <div class="card">
-                <div class="card-body">
-                    <!-- Logo -->
-                    <div class="app-brand justify-content-center mb-4">
-                        <a href="{{ url('/') }}" class="app-brand-link gap-2">
-                            <span class="app-brand-logo demo">
-                                <img src="{{ asset('assets/img/wdms/cgs-logo-outlined.png') }}"
-                                     alt="Logo"
-                                     class="w-px-40 h-auto" />
-                            </span>
-                            <span class="app-brand-text demo text-body fw-bold ms-2 text-uppercase">CGS</span>
-                        </a>
+                    <div class="card-body">
+                        <div class="row g-0">
+
+                            <!-- LEFT COLUMN : INFO PANEL -->
+                            <div class="col-lg-5 d-none d-lg-flex align-items-center border-end">
+                                <div class="p-4 w-100">
+
+                                    <div class="app-brand mb-4">
+                                        <a href="{{ url('/') }}" class="app-brand-link">
+                                            <span class="app-brand-logo demo">
+                                                <img src="{{ asset('assets/img/wdms/pit-logo-outlined.png') }}"
+                                                    alt="Logo"
+                                                    class="w-px-100 h-auto" />
+                                            </span>
+                                            <span class="fw-bold ms-2 text-gold">
+                                                Palompon Institute of Technology
+                                            </span>
+                                        </a>
+                                    </div>
+
+                                    <h5 class="fw-bold mb-3">
+                                        Accreditation Document Management System
+                                    </h5>
+
+                                    <p class="text-muted mb-4">
+                                        This platform is used for internal accreditation processes.
+                                        All registrations are subject to administrative approval.
+                                    </p>
+
+                                    <ul class="list-unstyled small text-muted">
+                                        <li class="mb-2">
+                                            <i class="bx bx-check-circle text-primary me-2"></i>
+                                            Provide accurate credentials
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="bx bx-check-circle text-primary me-2"></i>
+                                            Request an appropriate role
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="bx bx-check-circle text-primary me-2"></i>
+                                            Await for approval
+                                        </li>
+                                    </ul>
+
+                                    <div class="alert alert-info small mt-4">
+                                        <i class="bx bx-info-circle me-1"></i>
+                                        Approved users will granted access via their registered email.
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <!-- RIGHT COLUMN : FORM -->
+                            <div class="col-lg-7">
+                                <div class="p-4">
+
+                                    <h4 class="mb-2 fw-bold text-center text-lg-start">
+                                        Create an Account
+                                    </h4>
+                                    <p class="mb-4 text-muted text-center text-lg-start">
+                                        Your account will be reviewed before activation.
+                                    </p>
+
+                                    @if (session('status'))
+                                        <div class="alert alert-success mb-3">
+                                            {{ session('status') }}
+                                        </div>
+                                    @endif
+
+                                    <form method="POST" action="{{ route('register') }}">
+                                        @csrf
+
+                                        <!-- Name -->
+                                        <div class="mb-3">
+                                            <label class="form-label">Name</label>
+                                            <input type="text"
+                                                name="name"
+                                                value="{{ old('name') }}"
+                                                required
+                                                class="form-control @error('name') is-invalid @enderror">
+                                            @error('name') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                                        </div>
+
+                                        <!-- Email -->
+                                        <div class="mb-3">
+                                            <label class="form-label">Email</label>
+                                            <input type="email"
+                                                name="email"
+                                                value="{{ old('email') }}"
+                                                required
+                                                class="form-control @error('email') is-invalid @enderror">
+                                            @error('email') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                                        </div>
+
+                                        <!-- Role -->
+                                        <div class="mb-3">
+                                            <label class="form-label">Requested Role</label>
+                                            <select name="role"
+                                                    required
+                                                    class="form-select @error('role') is-invalid @enderror">
+                                                <option value="" disabled selected>Select your role</option>
+                                                <option value="{{ $taskForce }}">Task Force</option>
+                                                <option value="{{ $internalAssessor }}">Internal Assessor</option>
+                                                <option value="{{ $accreditor }}">Accreditor</option>
+                                            </select>
+                                            @error('role') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                                        </div>
+
+                                        <!-- Password -->
+                                        <div class="mb-3 form-password-toggle">
+                                            <label class="form-label">Password</label>
+                                            <div class="input-group input-group-merge">
+                                                <input type="password"
+                                                    name="password"
+                                                    required
+                                                    class="form-control @error('password') is-invalid @enderror">
+                                                <span class="input-group-text cursor-pointer">
+                                                    <i class="bx bx-hide"></i>
+                                                </span>
+                                            </div>
+                                            @error('password') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                                        </div>
+
+                                        <!-- Confirm Password -->
+                                        <div class="mb-3 form-password-toggle">
+                                            <label class="form-label">Confirm Password</label>
+                                            <div class="input-group input-group-merge">
+                                                <input type="password"
+                                                    name="password_confirmation"
+                                                    required
+                                                    class="form-control">
+                                                <span class="input-group-text cursor-pointer">
+                                                    <i class="bx bx-hide"></i>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Terms -->
+                                        <div class="mb-3 form-check">
+                                            <input class="form-check-input" type="checkbox" required>
+                                            <label class="form-check-label">
+                                                I agree to the
+                                                <a href="#">Privacy Policy</a> and
+                                                <a href="#">Terms & Conditions</a>
+                                            </label>
+                                        </div>
+
+                                        <button class="btn btn-primary w-100">
+                                            Submit Registration Request
+                                        </button>
+                                    </form>
+
+                                    <p class="text-center mt-3">
+                                        Already have an account?
+                                        <a href="{{ route('login') }}">Sign in</a>
+                                    </p>
+
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
-                    <!-- /Logo -->
-
-                    <h4 class="mb-2 text-center fw-bold">Sign up</h4>
-                    <p class="mb-4 text-center">Your account will be reviewed by an administrator before activation.</p>
-
-                    <!-- Session Status -->
-                    @if (session('status'))
-                        <div class="alert alert-success mb-3">{{ session('status') }}</div>
-                    @endif
-
-                    <!-- Registration Form -->
-                    <form method="POST" action="{{ route('register') }}" class="mb-3">
-                        @csrf
-
-                        <!-- Name -->
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Name</label>
-                            <input id="name"
-                                   type="text"
-                                   name="name"
-                                   value="{{ old('name') }}"
-                                   required autofocus
-                                   class="form-control @error('name') is-invalid @enderror"
-                                   placeholder="Enter your name" />
-                            @error('name')
-                                <span class="invalid-feedback">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        <!-- Email -->
-                        <div class="mb-3">
-                            <label for="email" class="form-label">Email</label>
-                            <input id="email"
-                                   type="email"
-                                   name="email"
-                                   value="{{ old('email') }}"
-                                   required
-                                   class="form-control @error('email') is-invalid @enderror"
-                                   placeholder="Enter your email" />
-                            @error('email')
-                                <span class="invalid-feedback">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        <!-- Password -->
-                        <div class="mb-3 form-password-toggle">
-                            <label for="password" class="form-label">Password</label>
-                            <div class="input-group input-group-merge">
-                                <input id="password"
-                                       type="password"
-                                       name="password"
-                                       required
-                                       class="form-control @error('password') is-invalid @enderror"
-                                       placeholder="••••••••••••" />
-                                <span class="input-group-text cursor-pointer"><i class="bx bx-hide"></i></span>
-                            </div>
-                            @error('password')
-                                <span class="invalid-feedback">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        <!-- Confirm Password -->
-                        <div class="mb-3 form-password-toggle">
-                            <label for="password_confirmation" class="form-label">Confirm Password</label>
-                            <div class="input-group input-group-merge">
-                                <input id="password_confirmation"
-                                       type="password"
-                                       name="password_confirmation"
-                                       required
-                                       class="form-control"
-                                       placeholder="••••••••••••" />
-                                <span class="input-group-text cursor-pointer"><i class="bx bx-hide"></i></span>
-                            </div>
-                        </div>
-
-                        <!-- Terms -->
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="terms" name="terms">
-                                <label class="form-check-label" for="terms">
-                                    I agree to
-                                    <a href="javascript:void(0);">privacy policy & terms</a>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Submit -->
-                        <button class="btn btn-primary d-grid w-100" type="submit">Sign up</button>
-                    </form>
-
-                    <p class="text-center">
-                        <span>Already have an account?</span>
-                        <a href="{{ route('login') }}">
-                            <span>Sign in instead</span>
-                        </a>
-                    </p>
                 </div>
-            </div>
             <!-- /Register Card -->
         </div>
     </div>

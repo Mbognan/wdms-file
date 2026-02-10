@@ -74,7 +74,7 @@ Route::middleware('auth')->group(function () {
     // End
 
     Route::get(
-        '/admin/accreditations/{infoId}/{levelId}/{programId}',
+        '/admin/accreditations/{infoId}/level/{levelId}/program/{programName}',
         [AdminAcreditationController::class, 'showProgram']
     )->name('admin.accreditations.program');
     Route::post('/programs/{program}/areas/save', [AdminAcreditationController::class, 'saveAreas'])

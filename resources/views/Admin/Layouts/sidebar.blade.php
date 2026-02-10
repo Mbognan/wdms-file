@@ -7,7 +7,7 @@
     <div class="app-brand demo">
         <a href="#" class="app-brand-link">
             <span class="app-brand-logo demo">
-                <img src="{{ asset('assets/img/wdms/cgs-logo-outlined.png') }}"
+                <img src="{{ asset('assets/img/wdms/pit-logo-outlined.png') }}"
                      alt="Pit Logo"
                      class="w-px-50 h-auto" />
             </span>
@@ -30,14 +30,23 @@
             <li class="menu-item {{ Route::is('users.*') ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons bx bx-user-check"></i>
-                    <div>Users</div>
-                    <span class="badge bg-warning rounded-pill ms-auto">!</span>
+                    <div>Internal Assessors & Accreditors</div>
+                    @if ($unverifiedCount > 0)
+                        <span class="badge bg-warning rounded-pill ms-auto">
+                            !
+                        </span>
+                    @endif
                 </a>
 
                 <ul class="menu-sub">
                     <li class="menu-item {{ Route::is('users.index') ? 'active' : '' }}">
                         <a href="{{ route('users.index') }}" class="menu-link">
                             <div>Unverified</div>
+                            @if ($unverifiedCount > 0)
+                                <span class="badge bg-warning rounded-pill ms-auto">
+                                    {{ $unverifiedCount }}
+                                </span>
+                            @endif
                         </a>
                     </li>
 
@@ -70,6 +79,44 @@
                 </a>
             </li>
 
+        @elseif ($user->user_type === UserType::DEAN && $user->status === 'Active')
+
+            <li class="menu-item {{ Route::is('users.*') ? 'active open' : '' }}">
+                <a href="javascript:void(0);" class="menu-link menu-toggle">
+                    <i class="menu-icon tf-icons bx bx-user-check"></i>
+                    <div>Task Forces</div>
+                    <span class="badge bg-warning rounded-pill ms-auto">!</span>
+                </a>
+
+                <ul class="menu-sub">
+                    <li class="menu-item {{ Route::is('users.index') ? 'active' : '' }}">
+                        <a href="{{ route('users.index') }}" class="menu-link">
+                            <div>Unverified</div>
+                        </a>
+                    </li>
+
+                    <li class="menu-item {{ Route::is('users.taskforce.index') ? 'active' : '' }}">
+                        <a href="{{ route('users.taskforce.index') }}" class="menu-link">
+                            <div>Verified</div>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <li class="menu-item {{ Route::is('admin.accreditation.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.accreditation.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-badge-check"></i>
+                    <div>Accreditation</div>
+                </a>
+            </li>
+
+            <li class="menu-item {{ Route::is('program.areas.*') ? 'active' : '' }}">
+                <a href="{{ route('program.areas.evaluations') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-clipboard"></i>
+                    <div>Evaluations</div>
+                </a>
+            </li>
+
         {{-- ================= TASK FORCE (ACTIVE) ================= --}}
         @elseif ($user->user_type === UserType::TASK_FORCE && $user->status === 'Active')
 
@@ -94,8 +141,8 @@
                 </a>
             </li>
 
-        {{-- ================= UNVERIFIED / NOT ACTIVE ================= --}}
-        @elseif ($user->user_type === UserType::UNVERIFIED)
+        {{-- ================= NOT ACTIVE ================= --}}
+        @elseif ($user->status !== 'Active')
 
             <li class="menu-item disabled">
                 <span class="menu-link text-muted">
@@ -153,7 +200,6 @@
                     <div>Evaluations</div>
                 </a>
             </li>
-
         @endif
     </ul>
 </aside>

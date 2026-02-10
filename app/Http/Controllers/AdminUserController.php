@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserType;
+use App\Enums\UserStatus;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -9,28 +11,44 @@ class AdminUserController extends Controller
 {
     public function index()
     {
-        $users = User::whereIn('status', ['pending'])->get();
+        $loggedInUser = auth()->user();
 
-        return view('admin.users.index', compact('users'));
+        $isAdmin = $loggedInUser->user_type === UserType::ADMIN;
+        $isDean  = $loggedInUser->user_type === UserType::DEAN;
+
+        $users = User::where('status', 'pending')->get();
+
+        return view('admin.users.index', compact(
+            'isAdmin',
+            'isDean',
+            'users'
+        ));
     }
 
 
     public function data()
     {
-        $users = User::select([
-            'id',
-            'name',
-            'email',
-            'user_type',
-            'status',
-            'created_at'
-        ])
-           ->where('status', 'Pending')->get();
+        $viewer = auth()->user();
+
+        $query = User::where('status', UserStatus::PENDING);
+
+        match ($viewer->user_type) {
+
+            UserType::ADMIN => $query->whereIn('user_type', [
+                UserType::INTERNAL_ASSESSOR,
+                UserType::ACCREDITOR,
+            ]),
+
+            UserType::DEAN => $query->where('user_type', UserType::TASK_FORCE),
+
+            default => $query->whereRaw('1 = 0'),
+        };
 
         return response()->json([
-            'data' => $users
+            'data' => $query->get(),
         ]);
     }
+
     public function suspend($id)
     {
         $user = User::findOrFail($id);
