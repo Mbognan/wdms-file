@@ -26,9 +26,8 @@
         
         {{-- Upload Card --}}
         <div class="card mb-4">
-            @if ($user->user_type === UserType::ADMIN 
+            @if ($user->user_type === UserType::DEAN 
                     || $user->user_type === UserType::TASK_FORCE
-                    || $user->user_type === UserType::TASK_FORCE_CHAIR
                 )
                 <div class="card-body">
                     <form
@@ -89,8 +88,11 @@
                                 <td>{{ strtoupper($upload->file_type) }}</td>
                                 <td>
                                     {{ $upload->uploader?->name ?? 'Unknown' }}
-                                </td>
 
+                                    @if ($upload->uploader && $upload->uploader->id === auth()->id())
+                                        <span class="text-muted">(You)</span>
+                                    @endif
+                                </td>
                                 <td>
                                     <span class="badge bg-label-info">
                                         {{ ucfirst($upload->uploader?->user_type?->value ?? 'N/A') }}
@@ -106,12 +108,8 @@
                                         <i class="bx bx-show"></i>
                                     </a>
 
-                                    {{-- DELETE (only allowed roles) --}}
-                                    @if (
-                                        $user->user_type === UserType::ADMIN ||
-                                        $user->user_type === UserType::TASK_FORCE ||
-                                        $user->user_type === UserType::TASK_FORCE_CHAIR
-                                    )
+                                    {{-- DELETE (only uploader can delete) --}}
+                                    @if ($upload->uploader && $upload->uploader->id === auth()->id())
                                         <form action="{{ route('subparam.uploads.destroy', $upload->id) }}"
                                             method="POST">
                                             @csrf

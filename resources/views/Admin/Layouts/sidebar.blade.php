@@ -85,13 +85,22 @@
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons bx bx-user-check"></i>
                     <div>Task Forces</div>
-                    <span class="badge bg-warning rounded-pill ms-auto">!</span>
+                    @if ($unverifiedCount > 0)
+                        <span class="badge bg-warning rounded-pill ms-auto">
+                            !
+                        </span>
+                    @endif
                 </a>
 
                 <ul class="menu-sub">
                     <li class="menu-item {{ Route::is('users.index') ? 'active' : '' }}">
                         <a href="{{ route('users.index') }}" class="menu-link">
                             <div>Unverified</div>
+                            @if ($unverifiedCount > 0)
+                                <span class="badge bg-warning rounded-pill ms-auto">
+                                    {{ $unverifiedCount }}
+                                </span>
+                            @endif
                         </a>
                     </li>
 

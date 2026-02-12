@@ -23,6 +23,7 @@ class AccreditationEvaluationController extends Controller
     {
         $user = auth()->user();
         $isAdmin = $user->user_type === UserType::ADMIN;
+        $isDean = $user->user_type === UserType::DEAN;
         $isTaskForce = $user->user_type === UserType::TASK_FORCE;
         $isInternalAssessor = $user->user_type === UserType::INTERNAL_ASSESSOR;
         $isAccreditor = $user->user_type === UserType::ACCREDITOR;
@@ -33,6 +34,8 @@ class AccreditationEvaluationController extends Controller
             'program',
             'evaluator',
             'areaRecommendations.area',
+            'subparameterRatings.ratingOption',
+            'subparameterRatings.subparameter.parameter',
         ]);
 
         // ===============================
@@ -57,13 +60,14 @@ class AccreditationEvaluationController extends Controller
             $query->where('evaluated_by', $user->id);
         }
 
-        // ACCREDITOR → only evaluations they made
+        // ACCREDITOR → see ALL Internal Assessor evaluations
         if ($user->user_type === UserType::ACCREDITOR) {
-            $query->where('evaluated_by', $user->id);
+            $query->whereHas('evaluator', function ($q) {
+                $q->where('user_type', UserType::INTERNAL_ASSESSOR);
+            });
         }
 
-        // ADMIN → sees everything (no filter)
-
+        // ADMIN/DEAN → sees everything (no filter)
         $evaluations = $query
             ->get()
             ->groupBy(fn ($e) =>
@@ -75,73 +79,73 @@ class AccreditationEvaluationController extends Controller
 
         foreach ($evaluations as $key => $group) {
 
-            $areaMeans = [];
+            $grandMeans[$key] = [];
+            $signatories[$key] = [];
 
-            // ONLY ACCREDITOR EVALUATIONS
-            $accreditorEvaluations = $group->filter(
-                fn ($e) => $e->evaluator->user_type === UserType::ACCREDITOR
-            );
+            foreach ([
+                'internal'   => UserType::INTERNAL_ASSESSOR,
+                'accreditor' => UserType::ACCREDITOR,
+            ] as $type => $role) {
 
-            foreach ($accreditorEvaluations as $evaluation) {
+                $areaMeans = [];
 
-                $ratingsByArea = $evaluation->subparameterRatings
-                    ->groupBy(fn ($r) => $r->subparameter->parameter->area_id);
+                $filteredEvaluations = $group->filter(
+                    fn ($e) => $e->evaluator->user_type === $role
+                );
 
-                foreach ($ratingsByArea as $areaId => $ratings) {
+                foreach ($filteredEvaluations as $evaluation) {
 
-                    $totalScore = 0;
-                    $count = 0;
+                    $ratingsByArea = $evaluation->subparameterRatings
+                        ->groupBy(fn ($r) => $r->subparameter->parameter->area_id);
 
-                    foreach ($ratings as $rating) {
-                        $label = $rating->ratingOption->label;
+                    foreach ($ratingsByArea as $areaId => $ratings) {
 
-                        if (in_array($label, ['Available', 'Available but Inadequate'])) {
-                            $totalScore += $rating->score;
-                            $count++;
+                        $totalScore = 0;
+                        $count = 0;
+
+                        foreach ($ratings as $rating) {
+                            $label = $rating->ratingOption->label;
+
+                            if (in_array($label, ['Available', 'Available but Inadequate'])) {
+                                $totalScore += $rating->score;
+                                $count++;
+                            }
+                        }
+
+                        if ($count > 0) {
+                            $areaMeans[$areaId][] = $totalScore / $count;
                         }
                     }
-
-                    if ($count > 0) {
-                        $areaMeans[$areaId][] = $totalScore / $count;
-                    }
                 }
+
+                $finalAreaMeans = collect($areaMeans)
+                    ->map(fn ($means) => collect($means)->avg());
+
+                $areaIds = $filteredEvaluations
+                    ->flatMap(fn ($e) => $e->areaRecommendations->pluck('area_id'))
+                    ->unique()
+                    ->values();
+
+                $areas = Area::whereIn('id', $areaIds)
+                    ->orderBy('id')
+                    ->get();
+
+                $grandMeans[$key][$type] = [
+                    'areaModels' => $areas,
+                    'areas'      => $finalAreaMeans,
+                    'total'      => $finalAreaMeans->sum(),
+                    'grand'      => $areas->count()
+                        ? $finalAreaMeans->sum() / $areas->count()
+                        : 0,
+                ];
+
+                $signatories[$key][$type] = $filteredEvaluations
+                    ->pluck('evaluator.name')
+                    ->unique()
+                    ->values();
             }
-
-            // ===============================
-            // FINAL AREA MEANS (ACCREDITOR ONLY)
-            // ===============================
-            $finalAreaMeans = collect($areaMeans)
-                ->map(fn ($means) => collect($means)->avg());
-
-            // evaluated areas ONLY (accreditor)
-            $areaIds = $accreditorEvaluations
-                ->flatMap(fn ($e) => $e->areaRecommendations->pluck('area_id'))
-                ->unique()
-                ->values();
-
-            $areas = Area::whereIn('id', $areaIds)
-                ->orderBy('id')
-                ->get();
-
-            $totalAreas = $areas->count();
-
-            $grandMeans[$key] = [
-                'areaModels' => $areas,
-                'areas'      => $finalAreaMeans,
-                'total'      => $finalAreaMeans->sum(),
-                'grand'      => $areas->count()
-                    ? $finalAreaMeans->sum() / $areas->count()
-                    : 0,
-            ];
-
-            // ===============================
-            // SIGNATORIES (ACCREDITOR ONLY)
-            // ===============================
-            $signatories[$key] = $accreditorEvaluations
-                ->pluck('evaluator.name')
-                ->unique()
-                ->values();
         }
+
 
         return view(
             'admin.accreditors.evaluations', 
@@ -150,6 +154,7 @@ class AccreditationEvaluationController extends Controller
                 'grandMeans',
                 'signatories',
                 'isAdmin',
+                'isDean',
                 'isTaskForce',
                 'isInternalAssessor',
                 'isAccreditor',
@@ -335,13 +340,21 @@ class AccreditationEvaluationController extends Controller
         $user = auth()->user();
 
         // ACCESS CONTROL
-        if (
-            $user->user_type === UserType::ACCREDITOR &&
-            $evaluation->evaluated_by !== $user->id
-        ) {
-            abort(403, 'You are not allowed to view this evaluation.');
+        // Admin, Dean, Accreditor can view all the evaluations
+        // Internal assessor can only view the own evaluation they made
+        if ($user->user_type === UserType::ACCREDITOR) {
+
+            $isOwnEvaluation = $evaluation->evaluated_by === $user->id;
+
+            $isInternalAssessorEvaluation =
+                $evaluation->evaluator->user_type === UserType::INTERNAL_ASSESSOR;
+
+            if (! $isOwnEvaluation && ! $isInternalAssessorEvaluation) {
+                abort(403, 'You are not allowed to view this evaluation.');
+            }
         }
 
+        // Task Force can only view evaluation under the area they are assigned
         if ($user->user_type === UserType::TASK_FORCE) {
             $assigned = AccreditationAssignment::where('user_id', $user->id)
                 ->where('area_id', $area->id)
@@ -357,9 +370,10 @@ class AccreditationEvaluationController extends Controller
         if (
             ! in_array($user->user_type, [
                 UserType::ADMIN,
+                UserType::DEAN,
                 UserType::TASK_FORCE,
                 UserType::INTERNAL_ASSESSOR,
-                UserType::ACCREDITOR,
+                UserType::ACCREDITOR
             ])
         ) {
             abort(403);

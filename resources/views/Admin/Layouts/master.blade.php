@@ -227,61 +227,61 @@ function showToast(message, type = 'success') {
     });
 }
 
-$(document).on('click', '.btn-suspend', function () {
+// $(document).on('click', '.btn-suspend', function () {
 
-    const button = $(this);
-    const userId = button.data('id');
-    const url = button.data('url');
+//     const button = $(this);
+//     const userId = button.data('id');
+//     const url = button.data('url');
 
-    Swal.fire({
-        title: "Are you sure?",
-        text: "You won't be able to revert this!",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "Yes, suspend it!"
-    }).then((result) => {
+//     Swal.fire({
+//         title: "Are you sure?",
+//         text: "You won't be able to revert this!",
+//         icon: "warning",
+//         showCancelButton: true,
+//         confirmButtonColor: "#3085d6",
+//         cancelButtonColor: "#d33",
+//         confirmButtonText: "Yes, suspend it!"
+//     }).then((result) => {
 
-        if (!result.isConfirmed) return;
+//         if (!result.isConfirmed) return;
 
-        $.ajax({
-            url: url,
-            type: 'DELETE',
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            beforeSend: function () {
-                button.prop('disabled', true);
-            },
-            success: function (res) {
+//         $.ajax({
+//             url: url,
+//             type: 'DELETE',
+//             headers: {
+//                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+//             },
+//             beforeSend: function () {
+//                 button.prop('disabled', true);
+//             },
+//             success: function (res) {
 
-                // Reload DataTable if exists
-                if ($.fn.DataTable.isDataTable('#users-table')) {
-                    $('#users-table').DataTable().ajax.reload(null, false);
-                }
+//                 // Reload DataTable if exists
+//                 if ($.fn.DataTable.isDataTable('#users-table')) {
+//                     $('#users-table').DataTable().ajax.reload(null, false);
+//                 }
 
-                Swal.fire({
-                    title: "Suspended!",
-                    text: res.message ?? "User suspended successfully.",
-                    icon: "success",
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            },
-            error: function () {
-                Swal.fire(
-                    "Error",
-                    "Failed to suspend user.",
-                    "error"
-                );
-            },
-            complete: function () {
-                button.prop('disabled', false);
-            }
-        });
-    });
-});
+//                 Swal.fire({
+//                     title: "Suspended!",
+//                     text: res.message ?? "User suspended successfully.",
+//                     icon: "success",
+//                     timer: 2000,
+//                     showConfirmButton: false
+//                 });
+//             },
+//             error: function () {
+//                 Swal.fire(
+//                     "Error",
+//                     "Failed to suspend user.",
+//                     "error"
+//                 );
+//             },
+//             complete: function () {
+//                 button.prop('disabled', false);
+//             }
+//         });
+//     });
+// });
 </script>
 
 @if(session('success'))

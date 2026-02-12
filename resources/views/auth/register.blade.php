@@ -175,7 +175,7 @@
 
                                         <!-- Role -->
                                         <div class="mb-3">
-                                            <label class="form-label">Requested Role</label>
+                                            <label class="form-label">Role</label>
                                             <select name="role"
                                                     required
                                                     class="form-select @error('role') is-invalid @enderror">

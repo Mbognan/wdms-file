@@ -14,10 +14,11 @@
             <a href="{{ url()->previous() }}" class="btn btn-outline-secondary">
                 <i class="bx bx-arrow-back me-1"></i> Back
             </a>
-
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editAccreditationModal">
-                <i class="bx bx-edit me-1"></i> Edit Accreditation
-            </button>
+            @if ($isAdmin)
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editAccreditationModal">
+                    <i class="bx bx-edit me-1"></i> Edit Accreditation
+                </button>
+            @endif
         </div>
     </div>
 
@@ -95,7 +96,6 @@
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
@@ -150,43 +150,49 @@
                                                     data-bs-toggle="tooltip"
                                                     title="View Areas">
                                                     <i class="bx bx-sitemap"></i>
+                                                    {{ !$isAdmin ? 'View Areas' : '' }}
                                                 </a>
-                                                <button class="btn btn-xs btn-outline-primary edit-program-btn"
-                                                        title="Edit Program"
-                                                        data-mapping-id="{{ $mapping->id }}"
-                                                        data-current-name="{{ $mapping->program->program_name }}">
-                                                    <i class="bx bx-edit"></i>
-                                                </button>
 
-                                                <button type="button"
-                                                        title="Delete Program"
-                                                        class="btn btn-xs btn-outline-danger delete-program-btn"
-                                                        data-mapping-id="{{ $mapping->id }}"
-                                                        data-program-name="{{ $mapping->program->program_name }}">
-                                                    <i class="bx bx-trash"></i>
-                                                </button>
+                                                @if ($isAdmin)
+                                                    <button class="btn btn-xs btn-outline-primary edit-program-btn"
+                                                            title="Edit Program"
+                                                            data-mapping-id="{{ $mapping->id }}"
+                                                            data-current-name="{{ $mapping->program->program_name }}">
+                                                        <i class="bx bx-edit"></i>
+                                                    </button>
+
+                                                    <button type="button"
+                                                            title="Delete Program"
+                                                            class="btn btn-xs btn-outline-danger delete-program-btn"
+                                                            data-mapping-id="{{ $mapping->id }}"
+                                                            data-program-name="{{ $mapping->program->program_name }}">
+                                                        <i class="bx bx-trash"></i>
+                                                    </button>
+                                                @endif
                                             </div>
                                         </div>
                                     @endforeach
                                 </div>
 
                                 {{-- ADD PROGRAM --}}
-                                <form class="mt-3 add-program-form">
-                                    @csrf
-                                    <input type="hidden" name="accreditation_info_id" value="{{ $accreditation->id }}">
-                                    <input type="hidden" name="level_id" value="{{ $level->id }}">
+                                @if ($isAdmin)
+                                    <form class="mt-3 add-program-form">
+                                        @csrf
+                                        <input type="hidden" name="accreditation_info_id" value="{{ $accreditation->id }}">
+                                        <input type="hidden" name="level_id" value="{{ $level->id }}">
 
-                                    <div class="input-group">
-                                        <input type="text"
-                                               name="program_name"
-                                               class="form-control"
-                                               placeholder="New Program"
-                                               required>
-                                        <button class="btn btn-primary">
-                                            <i class="bx bx-plus"></i>
-                                        </button>
-                                    </div>
-                                </form>
+                                        <div class="input-group">
+                                            <input type="text"
+                                                name="program_name"
+                                                class="form-control"
+                                                placeholder="New Program"
+                                                required>
+                                            <button class="btn btn-primary">
+                                                <i class="bx bx-plus"></i>
+                                            </button>
+                                        </div>
+                                    </form>
+                                @endif
                             </div>
                         </div>
                     </div>

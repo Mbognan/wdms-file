@@ -79,7 +79,6 @@
             </p>
 
             <div class="row g-3">
-
                 @forelse($programAreas as $mapping)
 
                     @php
@@ -101,7 +100,7 @@
                     <div class="col-md-4">
                         <a href="{{ route(
                             'program.areas.evaluation',
-                            [$infoId, $levelId, $programId, $mapping->area->id]
+                            [$infoId, $levelId, $programId, $mapping->id]
                         ) }}"
                            class="text-decoration-none text-dark">
 
@@ -151,7 +150,11 @@
                 @empty
                     <div class="col-12 text-center">
                         <p class="text-muted fst-italic">
-                            No areas available for this program.
+                            {{ 
+                                $isInternalAssessor || $isTaskForce
+                                ? 'No areas assigned for you yet.'
+                                : 'No areas available for this program.'
+                            }}
                         </p>
                     </div>
                 @endforelse

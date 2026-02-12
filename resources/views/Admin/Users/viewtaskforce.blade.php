@@ -87,18 +87,25 @@
                                 <div class="card-body">
                                     <form onsubmit="return false">
                                         <div class="row">
+                                            @php
+                                                $nameParts = explode(' ', trim($user->name));
+                                                $lastName = array_pop($nameParts);
+                                                $firstName = implode(' ', $nameParts);
+                                            @endphp
 
                                             {{-- FIRST NAME --}}
                                             <div class="mb-3 col-md-6">
                                                 <label class="form-label">First Name</label>
                                                 <input class="form-control"
-                                                    value="{{ explode(' ', $user->name)[0] ?? $user->name }}" disabled />
+                                                    value="{{ $firstName }}"
+                                                    disabled />
                                             </div>
 
                                             {{-- LAST NAME --}}
                                             <div class="mb-3 col-md-6">
                                                 <label class="form-label">Last Name</label>
-                                                <input class="form-control" value="{{ explode(' ', $user->name)[1] ?? '' }}"
+                                                <input class="form-control"
+                                                    value="{{ $lastName }}"
                                                     disabled />
                                             </div>
 

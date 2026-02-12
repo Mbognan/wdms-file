@@ -44,33 +44,71 @@
     </div>
 </div>
 
-<div class="modal fade" id="assignRoleModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="confirmVerifyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title fw-bold text-dark">
+                    Confirm User Verification
+                </h3>
+                <button type="button" class="btn-close"
+                        data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="fs-6 text-dark mb-3">
+                    You are about to <strong class="text-success">verify and activate</strong> this account.
+                </p>
+                <div class="border rounded p-3 mb-3 bg-light">
+                    <p class="mb-1">
+                        <strong>Name:</strong>
+                        <span id="confirm-name" class="text-dark"></span>
+                    </p>
+                    <p class="mb-0">
+                        <strong>Requested Role:</strong>
+                        <span id="confirm-role"
+                            class="badge bg-primary text-uppercase"></span>
+                    </p>
+                </div>
+                <div class="alert alert-warning d-flex align-items-start gap-2 mb-0">
+                    <i class="bx bx-error-circle fs-4"></i>
+                    <div>
+                        <strong>Please confirm carefully.</strong>
+                        <p class="mb-0">
+                            This action will grant system access based on the requested role.
+                        </p>
+                    </div>
+                </div>
+                <input type="hidden" id="confirm-user-id">
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary px-4"
+                        data-bs-dismiss="modal">
+                    Cancel
+                </button>
+
+                <button class="btn btn-success px-4 fw-semibold"
+                        id="confirm-verify">
+                    <i class="bx bx-check-circle me-1"></i>
+                    Verify User
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="confirmSuspendModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
 
             <div class="modal-header">
-                <h5 class="modal-title">Assign Role</h5>
-                <button type="button" class="btn-close"
-                        data-bs-dismiss="modal"></button>
+                <h3 class="modal-title text-danger">Suspend User</h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
 
             <div class="modal-body">
-                <input type="hidden" id="verify-user-id">
-
-                <div class="mb-3">
-                    <label class="form-label">User Role</label>
-                    <select id="user-role" class="form-select">
-                        <option value="">-- Select Role --</option>
-                        <option value="{{ $taskForce }}">Task Force</option>
-                        <option value="{{ $internalAssessor }}">Internal Assessor</option>
-                        <option value="{{ $accreditor }}">Accreditor</option>
-                    </select>
-
-                    <div id="role-error"
-                         class="text-danger small mt-1 d-none">
-                        Please select a role.
-                    </div>
-                </div>
+                <h5>Are you sure you want to suspend this user?</h5>
+                <input type="hidden" id="suspend-user-id">
             </div>
 
             <div class="modal-footer">
@@ -79,41 +117,16 @@
                     Cancel
                 </button>
 
-                <button class="btn btn-success" id="confirm-verify">
-                    Verify User
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="verifySuccessModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-
-            <div class="modal-header">
-                <h5 class="modal-title text-success">
-                    Verification Successful
-                </h5>
-            </div>
-
-            <div class="modal-body text-center">
-                <i class="bx bx-check-circle text-success fs-1 mb-3"></i>
-                <p class="mb-0" id="success-message">
-                    User verified successfully.
-                </p>
-            </div>
-
-            <div class="modal-footer">
-                <button class="btn btn-primary"
-                        data-bs-dismiss="modal">
-                    OK
+                <button class="btn btn-danger"
+                        id="confirm-suspend">
+                    Suspend
                 </button>
             </div>
 
         </div>
     </div>
 </div>
+
 
 @endsection
 
@@ -157,36 +170,56 @@ $(function () {
                 orderable: false,
                 searchable: false,
                 className: 'text-center',
-                render: row => `
-                    <button class="btn btn-sm btn-success btn-verify"
-                            data-id="${row.id}">
-                        <i class="bx bx-check"></i>
-                    </button>
-                `
+                render: row => {
+
+                    let buttons = [];
+
+                    if (row.status === 'Pending') {
+                        buttons.push(`
+                            <button class="btn btn-sm btn-success btn-verify"
+                                    title="Verify"
+                                    data-id="${row.id}">
+                                <i class="bx bx-check"></i>
+                            </button>
+                        `);
+                    }
+
+                    if (row.status !== 'Suspended') {
+                        buttons.push(`
+                            <button class="btn btn-sm btn-danger btn-suspend"
+                                    title="Suspend"
+                                    data-id="${row.id}">
+                                <i class="bx bx-trash"></i>
+                            </button>
+                        `);
+                    }
+
+                    return `
+                        <div class="d-flex justify-content-center gap-1">
+                            ${buttons.join('')}
+                        </div>
+                    `;
+                }
             }
         ]
     });
 
-    // OPEN ASSIGN ROLE MODAL
+    // OPEN CONFIRM VERIFY MODAL
     $(document).on('click', '.btn-verify', function () {
-        $('#verify-user-id').val($(this).data('id'));
-        $('#user-role').val('');
-        $('#role-error').addClass('d-none');
 
-        new bootstrap.Modal('#assignRoleModal').show();
+        const row = table.row($(this).closest('tr')).data();
+
+        $('#confirm-user-id').val(row.id);
+        $('#confirm-name').text(row.name);
+        $('#confirm-role').text(row.user_type);
+
+        new bootstrap.Modal('#confirmVerifyModal').show();
     });
 
     // CONFIRM VERIFICATION
     $('#confirm-verify').on('click', function () {
-        const userId = $('#verify-user-id').val();
-        const role = $('#user-role').val();
 
-        if (!role) {
-            $('#role-error').removeClass('d-none');
-            return;
-        }
-
-        $('#role-error').addClass('d-none');
+        const userId = $('#confirm-user-id').val();
 
         $.ajax({
             url: `/users/${userId}/verify`,
@@ -194,27 +227,71 @@ $(function () {
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
-            data: { user_type: role },
 
             success: res => {
                 bootstrap.Modal.getInstance(
-                    document.getElementById('assignRoleModal')
+                    document.getElementById('confirmVerifyModal')
                 ).hide();
 
-                $('#success-message').text(res.message);
-
-                new bootstrap.Modal('#verifySuccessModal').show();
+                showToast(
+                    res.message || 'User verified successfully.',
+                    'success'
+                );
 
                 table.ajax.reload(null, false);
             },
 
             error: xhr => {
-                $('#role-error')
-                    .removeClass('d-none')
-                    .text(xhr.responseJSON?.message ?? 'Verification failed.');
+                showToast(xhr.responseJSON?.message ?? 'Verification failed.');
             }
         });
     });
+
+    // OPEN SUSPEND MODAL
+    $(document).on('click', '.btn-suspend', function () {
+
+        const row = table.row($(this).closest('tr')).data();
+
+        $('#suspend-user-id').val(row.id);
+
+        new bootstrap.Modal('#confirmSuspendModal').show();
+    });
+
+    // CONFIRM SUSPEND
+    $('#confirm-suspend').on('click', function () {
+
+        const userId = $('#suspend-user-id').val();
+
+        $.ajax({
+            url: `/users/${userId}/suspend`,
+            method: 'PATCH',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+
+            success: res => {
+
+                bootstrap.Modal.getInstance(
+                    document.getElementById('confirmSuspendModal')
+                ).hide();
+
+                showToast(
+                    res.message || 'User suspended successfully.',
+                    'warning'
+                );
+
+                table.ajax.reload(null, false);
+            },
+
+            error: xhr => {
+                showToast(
+                    xhr.responseJSON?.message ?? 'Failed to suspend user.',
+                    'error'
+                );
+            }
+        });
+    });
+
 });
 
 </script>

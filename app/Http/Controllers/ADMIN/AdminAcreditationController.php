@@ -94,6 +94,8 @@ class AdminAcreditationController extends Controller
 
     public function show($id)
     {
+        $user = auth()->user();
+        $isAdmin = $user->user_type === UserType::ADMIN;
         $accreditation = AccreditationInfo::with('accreditationBody')->findOrFail($id);
 
         $levels = InfoLevelProgramMapping::with(['level', 'program'])
@@ -104,6 +106,7 @@ class AdminAcreditationController extends Controller
         return view('admin.accreditors.show-accreditation', [
             'accreditation' => $accreditation,
             'levels' => $levels,
+            'isAdmin' => $isAdmin
         ]);
     }
 
@@ -245,6 +248,7 @@ class AdminAcreditationController extends Controller
     {
         $user = auth()->user();
         $isAdmin = $user->user_type === UserType::ADMIN;
+        $isDean = $user->user_type === UserType::DEAN;
 
         $levelOrder = [
             'PRELIMINARY' => 1,
@@ -254,7 +258,7 @@ class AdminAcreditationController extends Controller
             'LEVEL IV' => 5,
         ];
 
-        if ($isAdmin) {
+        if ($isAdmin || $isDean) {
             // Admin sees all mappings
             $mappings = InfoLevelProgramMapping::with([
                 'accreditationInfo.accreditationBody',
@@ -332,7 +336,9 @@ class AdminAcreditationController extends Controller
     public function showProgram($infoId, $levelId, $programName)
     {
         $user = auth()->user();
+
         $isAdmin = $user->user_type === UserType::ADMIN;
+        $isDean  = $user->user_type === UserType::DEAN;
 
         $levelName = AccreditationLevel::where('id', $levelId)->value('level_name');
 
@@ -349,15 +355,31 @@ class AdminAcreditationController extends Controller
             abort(404, 'Program not found');
         }
 
+        /**
+         * ---------------------------------------
+         * USERS TO SHOW BASED ON ROLE
+         * ---------------------------------------
+         */
+        $usersQuery = User::where('status', 'Active')->orderBy('name');
 
-        $users = User::whereIn('user_type', [
-            'TASK FORCE',
-            'TASK FORCE CHAIRMAN',
-        ])
-            ->where('status', 'Active')
-            ->orderBy('name')
-            ->get();
+        if ($isAdmin) {
+            // ADMIN → Internal Assessors
+            $usersQuery->where('user_type', UserType::INTERNAL_ASSESSOR);
 
+        } elseif ($isDean) {
+            // DEAN → Task Force
+            $usersQuery->whereIn('user_type', [
+                UserType::TASK_FORCE,
+            ]);
+        }
+
+        $users = $usersQuery->get();
+
+        /**
+         * ---------------------------------------
+         * ASSIGNED USERS
+         * ---------------------------------------
+         */
         $assignedUserIds = AccreditationAssignment::where([
             'accred_info_id' => $infoId,
             'level_id' => $levelId,
@@ -367,13 +389,26 @@ class AdminAcreditationController extends Controller
             ->unique()
             ->values();
 
-        // Users available for assignment (exclude already assigned)
+        // Only users NOT yet assigned
         $availableUsers = $users->whereNotIn('id', $assignedUserIds);
 
+        /**
+         * ---------------------------------------
+         * PROGRAM AREAS
+         * ---------------------------------------
+         */
+        if ($isAdmin || $isDean) {
+            $programAreas = ProgramAreaMapping::with([
+                'users' => function ($q) use ($isAdmin, $isDean) {
+                    if ($isAdmin) {
+                        $q->where('user_type', UserType::INTERNAL_ASSESSOR);
+                    }
 
-        if ($isAdmin) {
-            // ADMIN: see all areas
-            $programAreas = ProgramAreaMapping::with('users')
+                    if ($isDean) {
+                        $q->where('user_type', UserType::TASK_FORCE);
+                    }
+                }
+            ])
                 ->where('info_level_program_mapping_id', $program->id)
                 ->get();
         } else {
@@ -388,10 +423,9 @@ class AdminAcreditationController extends Controller
                 ->unique()
                 ->values();
 
-
             $programAreas = ProgramAreaMapping::with([
                 'users' => function ($q) use ($user) {
-                    $q->where('users.id', $user->id);
+                    $q->where('user_type', $user->user_type);
                 }
             ])
                 ->where('info_level_program_mapping_id', $program->id)
@@ -399,17 +433,17 @@ class AdminAcreditationController extends Controller
                 ->get();
         }
 
-
         return view('admin.accreditors.program', [
             'infoId' => $infoId,
             'level' => $levelName,
             'levelId' => $levelId,
             'programName' => $programName,
             'programId' => $program->program_id,
-            'users' => $availableUsers, // ✅ only users that can be assigned
+            'users' => $availableUsers,
             'programAreas' => $programAreas,
-            'assignedUserIds' => $assignedUserIds, // for UI display
+            'assignedUserIds' => $assignedUserIds,
             'isAdmin' => $isAdmin,
+            'isDean' => $isDean
         ]);
     }
 
@@ -663,36 +697,60 @@ class AdminAcreditationController extends Controller
         int $programId,
         int $programAreaId
     ) {
+        $user = auth()->user();
+
+        $isAdmin = $user->user_type === UserType::ADMIN;
+        $isDean  = $user->user_type === UserType::DEAN;
+        $isTaskForce = $user->user_type === UserType::TASK_FORCE;
+        $isInternalAssessor = $user->user_type === UserType::INTERNAL_ASSESSOR;
+        $isAccreditor = $user->user_type === UserType::ACCREDITOR;
+
         $context = InfoLevelProgramMapping::where([
             'accreditation_info_id' => $infoId,
-            'level_id' => $levelId,
-            'program_id' => $programId,
+            'level_id'              => $levelId,
+            'program_id'            => $programId,
         ])->firstOrFail();
 
         $programArea = ProgramAreaMapping::with([
             'area',
-            'users',
-            // 🔑 preload parameters + subparam count
+
+            // FILTER USERS BY ROLE
+            'users' => function ($q) use ($isAdmin, $isDean, $isTaskForce, $isInternalAssessor) {
+                if ($isAdmin) {
+                    $q->where('user_type', UserType::INTERNAL_ASSESSOR);
+                }
+
+                if ($isDean || $isTaskForce) {
+                    $q->where('user_type', UserType::TASK_FORCE);
+                }
+
+                if ($isInternalAssessor) {
+                    $q->where('user_type', UserType::INTERNAL_ASSESSOR);
+                }
+            },
+
+            // parameters + sub parameters always visible
             'parameters.sub_parameters'
         ])
             ->where('id', $programAreaId)
             ->where('info_level_program_mapping_id', $context->id)
             ->firstOrFail();
 
-        $parameters = $programArea->parameters;
-        $isAdmin = auth()->user()?->user_type === UserType::ADMIN;
-        return view('admin.accreditors.parameter', compact(
-            'infoId',
-            'levelId',
-            'programId',
-            'programAreaId',
-            'context',
-            'programArea',
-            'parameters',
-            'isAdmin',
-        ));
+        return view('admin.accreditors.parameter', [
+            'infoId'        => $infoId,
+            'levelId'       => $levelId,
+            'programId'     => $programId,
+            'programAreaId' => $programAreaId,
+            'context'       => $context,
+            'programArea'   => $programArea,
+            'parameters'    => $programArea->parameters,
+            'isAdmin'       => $isAdmin,
+            'isDean'        => $isDean,
+            'isIA'          => $isInternalAssessor,
+            'isAccreditor'  => $isAccreditor,
+            'loggedInUser'  => $user
+        ]);
     }
-
 
     public function storeParameters(Request $request, $programAreaMappingId)
     {
@@ -827,115 +885,118 @@ class AdminAcreditationController extends Controller
 
 
     //INTERNAL ASSESSOR
- public function indexInternalAccessor()
-{
-    $user = auth()->user();
-
-    /**
-     * USER ROLES
-     */
-    $isAdmin = $user?->user_type === UserType::ADMIN;
-    $isInternalAssessor = $user?->user_type === UserType::INTERNAL_ASSESSOR;
-    $isAccreditor = $user?->user_type === UserType::ACCREDITOR;
-
-    /**
-     * UI FLAGS
-     */
-    $isAccreditationUI = true;
-    $canEvaluate = $isAccreditor;
-
-    $mappings = InfoLevelProgramMapping::with([
-        'accreditationInfo',
-        'level',
-        'program',
-        'programAreas.area',
-        'programAreas.evaluations'
-    ])
-    ->whereHas('accreditationInfo', function ($q) {
-        $q->where('status', 'ongoing');
-    })
-    ->get();
-
-    $data = [];
-
-    foreach ($mappings as $mapping) {
-
-        $levelName = $mapping->level->level_name;
+    public function indexInternalAccessor()
+    {
+        $user = auth()->user();
 
         /**
-         * TOTAL PROGRAM AREAS
+         * USER ROLES
          */
-        $totalAreas = $mapping->programAreas->count();
+        $isAdmin = $user?->user_type === UserType::ADMIN;
+        $isInternalAssessor = $user?->user_type === UserType::INTERNAL_ASSESSOR;
+        $isAccreditor = $user?->user_type === UserType::ACCREDITOR;
 
         /**
-         * COMPLETED PROGRAM AREAS
-         * A program area is completed if it has
-         * at least ONE evaluation with status = completed
+         * UI FLAGS
          */
-        $completedAreas = $mapping->programAreas->filter(function ($programArea) {
-            return $programArea->evaluations
-                ->where('status', 'completed')
-                ->count() > 0;
-        })->count();
+        $isAccreditationUI = true;
+        $canEvaluate = $isAccreditor;
 
-        /**
-         * PROGRESS CALCULATION
-         */
-        $progress = $totalAreas > 0
-            ? round(($completedAreas / $totalAreas) * 100)
-            : 0;
+        $mappings = InfoLevelProgramMapping::with([
+            'accreditationInfo',
+            'level',
+            'program',
+            'programAreas.area',
+            'programAreas.evaluations'
+        ])
+        ->whereHas('accreditationInfo', function ($q) {
+            $q->where('status', 'ongoing');
+        })
+        ->get();
 
-        /**
-         * INTERNAL ASSESSORS:
-         * Only see FULLY completed programs
-         */
-        if ($isInternalAssessor && !$isAccreditor && $totalAreas === 0) {
-            continue;
-        }
+        $data = [];
 
-        if (!isset($data[$levelName])) {
-            $data[$levelName] = [
-                'level_id' => $mapping->level->id,
-                'programs' => [],
+        foreach ($mappings as $mapping) {
+
+            $levelName = $mapping->level->level_name;
+
+            /**
+             * TOTAL PROGRAM AREAS
+             */
+            $totalAreas = $mapping->programAreas->count();
+
+            /**
+             * COMPLETED PROGRAM AREAS
+             * A program area is completed if it has
+             * at least ONE evaluation with status = completed
+             */
+            $completedAreas = $mapping->programAreas->filter(function ($programArea) {
+                return $programArea->evaluations
+                    ->where('status', 'completed')
+                    ->count() > 0;
+            })->count();
+
+            /**
+             * PROGRESS CALCULATION
+             */
+            $progress = $totalAreas > 0
+                ? round(($completedAreas / $totalAreas) * 100)
+                : 0;
+
+            /**
+             * INTERNAL ASSESSORS:
+             * Only see FULLY completed programs
+             */
+            if ($isInternalAssessor && !$isAccreditor && $totalAreas === 0) {
+                continue;
+            }
+
+            if (!isset($data[$levelName])) {
+                $data[$levelName] = [
+                    'level_id' => $mapping->level->id,
+                    'programs' => [],
+                ];
+            }
+
+            $data[$levelName]['programs'][] = [
+                'program_id' => $mapping->program->id,
+                'program_name' => $mapping->program->program_name,
+                'accreditation_id' => $mapping->accreditationInfo->id,
+                'accreditation_title' => $mapping->accreditationInfo->title,
+
+                // UI
+                'accreditation_status_label' => '',
+
+                'total_areas' => $totalAreas,
+                'evaluated_areas' => $completedAreas,
+                'progress' => $progress,
             ];
         }
 
-        $data[$levelName]['programs'][] = [
-            'program_id' => $mapping->program->id,
-            'program_name' => $mapping->program->program_name,
-            'accreditation_id' => $mapping->accreditationInfo->id,
-            'accreditation_title' => $mapping->accreditationInfo->title,
-
-            // UI
-            'accreditation_status_label' => '',
-
-            'total_areas' => $totalAreas,
-            'evaluated_areas' => $completedAreas,
-            'progress' => $progress,
-        ];
+        return view(
+            'admin.accreditors.internal-accessor',
+            compact(
+                'isAdmin',
+                'isInternalAssessor',
+                'isAccreditationUI',
+                'canEvaluate',
+                'data'
+            )
+        );
     }
-
-    return view(
-        'admin.accreditors.internal-accessor',
-        compact(
-            'isAdmin',
-            'isInternalAssessor',
-            'isAccreditationUI',
-            'canEvaluate',
-            'data'
-        )
-    );
-}
-
-
-
-
 
     public function showProgramAreas(
         int $accreditationId,
         int $levelId,
         int $programId
     ) {
+        $user = auth()->user();
+
+        $isAdmin = $user->user_type === UserType::ADMIN;
+        $isDean = $user->user_type === UserType::DEAN;
+        $isInternalAssessor = $user->user_type === UserType::INTERNAL_ASSESSOR;
+        $isTaskForce = $user->user_type === UserType::TASK_FORCE;
+
         // ================= PROGRAM =================
         $program = Program::findOrFail($programId);
 
@@ -946,21 +1007,47 @@ class AdminAcreditationController extends Controller
             'program_id' => $programId,
         ])->firstOrFail();
 
-        // ================= PROGRAM AREAS =================
-        $programAreas = ProgramAreaMapping::with([
+        // ================= BASE QUERY =================
+        $programAreasQuery = ProgramAreaMapping::with([
             'area',
-            'users',
+
+            // USERS SHOWN PER AREA (ROLE-BASED)
+            'users' => function ($q) use (
+                $isAdmin,
+                $isDean,
+                $isInternalAssessor,
+                $isTaskForce
+            ) {
+                if ($isAdmin || $isInternalAssessor) {
+                    $q->where('user_type', UserType::INTERNAL_ASSESSOR);
+                }
+
+                if ($isDean || $isTaskForce) {
+                    $q->where('user_type', UserType::TASK_FORCE);
+                }
+
+                $q->orderBy('name');
+            },
 
             // latest evaluation per area
             'evaluations' => function ($q) {
                 $q->latest()->limit(1);
             },
 
-            // evaluator (internal assessor)
             'evaluations.files.uploader',
         ])
-            ->where('info_level_program_mapping_id', $context->id)
-            ->get();
+        ->where('info_level_program_mapping_id', $context->id);
+
+        // ================= AREA VISIBILITY =================
+        if (!$isAdmin && !$isDean) {
+            // Internal Assessor / Task Force
+            // only areas assigned to logged-in user
+            $programAreasQuery->whereHas('users', function ($q) use ($user) {
+                $q->where('users.id', $user->id);
+            });
+        }
+
+        $programAreas = $programAreasQuery->get();
 
         // ================= RETURN VIEW =================
         return view('admin.accreditors.internal-accessor-areas', [
@@ -969,9 +1056,12 @@ class AdminAcreditationController extends Controller
             'levelId' => $levelId,
             'programId' => $programId,
             'infoId' => $accreditationId,
+            'isInternalAssessor' => $isInternalAssessor,
+            'isTaskForce' => $isTaskForce,
+            'isAdmin' => $isAdmin,
+            'isDean' => $isDean,
         ]);
     }
-
 
     public function showAreaEvaluation(
         int $infoId,
@@ -979,6 +1069,9 @@ class AdminAcreditationController extends Controller
         int $programId,
         int $programAreaId
     ) {
+        // ================= AUTH USER =================
+        $user = auth()->user();
+
         // ================= CONTEXT VALIDATION =================
         $context = InfoLevelProgramMapping::where([
             'accreditation_info_id' => $infoId,
@@ -986,10 +1079,36 @@ class AdminAcreditationController extends Controller
             'program_id' => $programId,
         ])->firstOrFail();
 
+        // ================= ACCESS CONTROL =================
+        if ($user->user_type === UserType::INTERNAL_ASSESSOR) {
+
+            $isAssigned = ProgramAreaMapping::where('id', $programAreaId)
+            ->where('info_level_program_mapping_id', $context->id)
+            ->whereHas('users', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })
+            ->exists();
+
+            if (! $isAssigned) {
+                abort(403, 'You are not assigned to this area.');
+            }
+        }
+
         // ================= PROGRAM AREA =================
         $programArea = ProgramAreaMapping::with([
             'area',
-            'users',
+
+            // ONLY INTERNAL ASSESSORS ASSIGNED TO THIS AREA
+            'users' => function ($q) use ($user) {
+                $q->where('user_type', UserType::INTERNAL_ASSESSOR)
+
+                // logged-in user FIRST
+                ->orderByRaw('users.id = ? DESC', [$user->id])
+
+                // then alphabetically
+                ->orderBy('name');
+            },
+
             'parameters.sub_parameters',
         ])
             ->where('id', $programAreaId)
@@ -1010,7 +1129,6 @@ class AdminAcreditationController extends Controller
             ->first();
 
         // ================= USER ROLES =================
-        $user = auth()->user();
         $isAdmin = $user?->user_type === UserType::ADMIN;
         $isInternalAssessor = $user?->user_type === UserType::INTERNAL_ASSESSOR;
 
