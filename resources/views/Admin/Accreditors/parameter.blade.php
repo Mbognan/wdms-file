@@ -71,20 +71,25 @@
         <p class="text-muted mb-4">AREA</p>
 
         {{-- ASSIGNED USERS --}}
-        <div class="card mb-4">
-            <div class="card-body">
-                <h6 class="fw-bold mb-3">Assigned Users</h6>
-                <div class="users-grid">
-                    @foreach ($programArea->users as $user)
-                        <div class="user-box">
-                            <div class="user-avatar">{{ strtoupper(substr($user->name, 0, 2)) }}</div>
-                            <div class="user-name">{{ $user->name }}</div>
-                            <div class="user-name text-primary">{{ $user->user_type }}</div>
-                        </div>
-                    @endforeach
+        @if (!$isAccreditor)
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3">
+                        Assigned
+                        {{ $isAdmin || $isIA ? 'Internal Assessors' : 'Task Forces' }}
+                    </h6>
+                    <div class="users-grid">
+                        @foreach ($programArea->users as $user)
+                            <div class="user-box">
+                                <div class="user-avatar">{{ strtoupper(substr($user->name, 0, 2)) }}</div>
+                                <div class="user-name">{{ $user->name }} {{ $loggedInUser->name === $user->name ? '(You)' : '' }}</div>
+                                <div class="user-name text-primary">{{ $user->user_type }}</div>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             </div>
-        </div>
+        @endif
 
         {{-- PARAMETERS CARD --}}
         <div class="card">

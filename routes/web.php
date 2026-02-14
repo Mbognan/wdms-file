@@ -33,7 +33,7 @@ Route::middleware('auth')->group(function () {
         ->name('users.data');
     Route::post('/users/{id}/verify', [AdminUserController::class, 'verify'])
      ->name('users.verify');
-    Route::delete('/users/{id}/suspend', [AdminUserController::class, 'suspend']);
+    Route::patch('/users/{id}/suspend', [AdminUserController::class, 'suspend']);
     Route::get('/task-force', [AdminTaskForceController::class, 'index'])
         ->name('users.taskforce.index');
     Route::get('/task-force/data', [AdminTaskForceController::class, 'data'])
@@ -74,7 +74,7 @@ Route::middleware('auth')->group(function () {
     // End
 
     Route::get(
-        '/admin/accreditations/{infoId}/{levelId}/{programId}',
+        '/admin/accreditations/{infoId}/level/{levelId}/program/{programName}',
         [AdminAcreditationController::class, 'showProgram']
     )->name('admin.accreditations.program');
     Route::post('/programs/{program}/areas/save', [AdminAcreditationController::class, 'saveAreas'])

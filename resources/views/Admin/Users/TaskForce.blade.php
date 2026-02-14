@@ -11,7 +11,13 @@
 <div class="container-xxl flex-grow-1 container-p-y bg-footer-theme">
     <div class="card">
         <div class="card-header">
-            <h5>Task Force Users</h5>
+            <h5>
+                {{ 
+                    $isAdmin
+                    ? 'Active Internal Assessors & Accreditors'
+                    : 'Active Task Forces'
+                }}
+            </h5>
         </div>
 
         <div class="card-body">
@@ -21,7 +27,7 @@
                         <th>ID</th>
                         <th>Name</th>
                         <th>Email</th>
-                        <th>User Type</th>
+                        <th>Role</th>
                         <th>Status</th>
                         <th>Registered At</th>
                         <th class="text-center">Action</th>

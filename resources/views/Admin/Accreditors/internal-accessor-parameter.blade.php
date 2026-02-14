@@ -59,7 +59,7 @@
     @if ($programArea->users->count() > 0)
     <div class="card mb-4">
         <div class="card-body">
-            <h6 class="fw-bold mb-3">Assigned Task Forces</h6>
+            <h6 class="fw-bold mb-3">Assigned Internal Assessors</h6>
 
             <div class="users-grid">
                 @foreach ($programArea->users as $user)
@@ -67,8 +67,19 @@
                         <div class="user-avatar">
                             {{ strtoupper(substr($user->name, 0, 2)) }}
                         </div>
-                        <div class="user-name">{{ $user->name }}</div>
-                        <div class="user-name text-primary">{{ $user->user_type }}</div>
+                        <div class="user-name">
+                            {{ $user->name }}
+                            @if (
+                                $user->id === auth()->id() &&
+                                $user->user_type === \App\Enums\UserType::INTERNAL_ASSESSOR
+                            )
+                                <span class="text-muted">(You)</span>
+                            @endif
+                        </div>
+
+                        <div class="user-name text-primary">
+                            {{ $user->user_type }}
+                        </div>
                     </div>
                 @endforeach
             </div>
@@ -344,7 +355,7 @@ document.addEventListener('alpine:init', () => {
             })
 
             const data = await response.json()
-
+            
             if (!response.ok) {
                showToast(data.message ?? 'Something went wrong.', 'error')
                 return

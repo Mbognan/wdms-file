@@ -12,8 +12,8 @@ class UserSeeder extends Seeder
     {
         // Create Admin/IQA Account
         User::create([
-            'name' => '',
-            'email' => '@example.com',
+            'name' => 'Jiv Codera',
+            'email' => 'jiv@example.com',
             'password' => Hash::make('password'),
             'user_type' => 'ADMIN',
             'status' => 'Active',

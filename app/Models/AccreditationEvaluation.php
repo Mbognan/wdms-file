@@ -58,8 +58,10 @@ class AccreditationEvaluation extends Model
         );
     }
 
-    public function getWasUpdatedAttribute(): bool
+    protected $appends = ['is_updated'];
+
+    public function getIsUpdatedAttribute(): bool
     {
-        return $this->updated_at && $this->updated_at->gt($this->created_at);
+        return $this->updated_at->gt($this->created_at);
     }
 }

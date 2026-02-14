@@ -89,50 +89,48 @@
                         <div class="col-md-4">
                             <div class="card h-100 shadow-sm d-flex flex-column area-card">
 
-    {{-- CLICKABLE AREA --}}
-    <a href="{{ route('program.areas.parameters', [$infoId, $levelId, $programId, $area->id]) }}"
-       class="text-decoration-none text-dark flex-grow-1 area-link">
+                                {{-- CLICKABLE AREA --}}
+                                <a href="{{ route('program.areas.parameters', [$infoId, $levelId, $programId, $area->id]) }}"
+                                class="text-decoration-none text-dark flex-grow-1 area-link">
 
-        <div class="bg-primary text-white text-center py-2 rounded-top fw-bold">
-            {{ $area->area_name }}
-        </div>
+                                    <div class="bg-primary text-white text-center py-2 rounded-top fw-bold">
+                                        {{ $area->area_name }}
+                                    </div>
 
-        <div class="card-body text-center">
-            <div class="assigned-users mb-2">
-                @foreach ($area->users->take(3) as $user)
-                    <div class="avatar">{{ substr($user->name, 0, 2) }}</div>
-                @endforeach
-                @if ($area->users->count() > 3)
-                    <div class="avatar more">+{{ $area->users->count() - 3 }}</div>
-                @endif
-            </div>
+                                    <div class="card-body text-center">
+                                        <div class="assigned-users mb-2">
+                                            @foreach ($area->users->take(3) as $user)
+                                                <div class="avatar">{{ substr($user->name, 0, 2) }}</div>
+                                            @endforeach
+                                            @if ($area->users->count() > 3)
+                                                <div class="avatar more">+{{ $area->users->count() - 3 }}</div>
+                                            @endif
+                                        </div>
 
-            <p class="text-muted">{{ $area->description ?? '' }}</p>
-        </div>
-    </a>
+                                        <p class="text-muted">{{ $area->description ?? '' }}</p>
+                                    </div>
+                                </a>
 
-    {{-- ✅ BUTTON OUTSIDE THE LINK --}}
-    @if ($isAdmin)
-        <div class="p-2 border-top text-center">
-            <button
-                type="button"
-                class="btn btn-outline-primary btn-sm assign-user-btn"
-                data-area-id="{{ $area->id }}"
-                data-area-name="{{ $area->area_name }}"
-                data-bs-toggle="modal"
-                data-bs-target="#assignUsersModal">
-                <i class="bx bx-user-plus"></i> Assign User
-            </button>
-        </div>
-    @endif
+                                @if ($isAdmin || $isDean)
+                                    <div class="p-2 border-top text-center">
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline-primary btn-sm assign-user-btn"
+                                            data-area-id="{{ $area->id }}"
+                                            data-area-name="{{ $area->area_name }}"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#assignUsersModal">
 
-</div>
+                                            <i class="bx bx-user-plus"></i>
 
+                                            {{ $isAdmin ? 'Assign Internal Assessors' : 'Assign Task Forces' }}
 
+                                        </button>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                     @endforeach
-
-
                 </div>
             </div>
         </div>
@@ -144,7 +142,13 @@
             <div class="modal-content">
 
                 <div class="modal-header">
-                    <h5 class="modal-title">Assign Areas & Users</h5>
+                    <h5 class="modal-title">
+                        {{ 
+                            $isAdmin
+                            ? 'Add Area & Assign Internal Assessors'
+                            : 'Assign Task Forces'
+                        }}
+                    </h5>
                     <button class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
@@ -163,7 +167,9 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th style="width:30%">Area Name</th>
-                                        <th style="width:55%">Assign Users</th>
+                                        <th style="width:55%">
+                                            {{ $isAdmin ? 'Internal Assessors' : 'Task Forces' }}
+                                        </th>
                                         <th style="width:15%">Action</th>
                                     </tr>
                                 </thead>

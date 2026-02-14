@@ -5,25 +5,50 @@ namespace App\Http\Controllers\ADMIN;
 use App\Http\Controllers\Controller;
 use App\Models\ADMIN\AccreditationAssignment;
 use App\Models\User;
+use App\Enums\UserType;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AdminTaskForceController extends Controller
 {
     public function index()
     {
-        return view('admin.users.taskforce');
+        $loggedInUser = auth()->user();
+        $isAdmin = $loggedInUser->user_type === UserType::ADMIN;
+        $isDean = $loggedInUser->user_type === UserType::DEAN;
+
+        return view(
+            'admin.users.taskforce', 
+            compact('isAdmin', 'isDean')
+        );
     }
 
     /**
      * Datatable data for Task Force users
      */
-    public function data()
+
+    public function data(): JsonResponse
     {
-        $users = User::whereIn('user_type', [
-            'TASK FORCE',
-            'TASK FORCE CHAIR'
-        ])
+        $user = auth()->user();
+
+        $allowedRoles = [];
+
+        if ($user->user_type === UserType::DEAN) {
+            $allowedRoles = [
+                UserType::TASK_FORCE,
+            ];
+        }
+
+        if ($user->user_type === UserType::ADMIN) {
+            $allowedRoles = [
+                UserType::INTERNAL_ASSESSOR,
+                UserType::ACCREDITOR,
+            ];
+        }
+
+        $users = User::query()
             ->where('status', 'Active')
+            ->whereIn('user_type', $allowedRoles)
             ->latest()
             ->get();
 
@@ -31,6 +56,7 @@ class AdminTaskForceController extends Controller
             'data' => $users
         ]);
     }
+
 
     public function viewTaskForce($id)
     {
