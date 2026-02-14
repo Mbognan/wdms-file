@@ -133,7 +133,6 @@
                                                 <input class="form-control"
                                                     value="{{ $user->created_at->format('M d, Y h:i A') }}" disabled />
                                             </div>
-
                                         </div>
                                     </form>
                                 </div>
@@ -157,136 +156,224 @@
                                 </div>
                             </div>
                         </div>
-                        {{-- ASSIGNMENT TAB --}}
+                        
+                        {{-- ================= ASSIGNMENT TAB ================= --}}
                         <div class="tab-pane fade" id="tab-assignment">
+
                             <div class="card">
                                 <h5 class="card-header">Assigned Areas</h5>
 
                                 <div class="card-body">
+
                                     @if (empty($assignmentHierarchy))
                                         <p class="text-muted fst-italic">
                                             This user has no task force assignments.
                                         </p>
                                     @else
-                                        @foreach ($assignmentHierarchy as $accreditation)
-                                            <div class="mb-4">
-                                                <h6 class="fw-bold mb-2">
-                                                    {{ $accreditation['title'] }}
-                                                </h6>
 
-                                                @foreach ($accreditation['programs'] as $program)
-                                                    <p class="text-muted mb-2">
-                                                        {{ $program['name'] }}
+                                        {{-- ACCORDION WRAPPER (IMPORTANT) --}}
+                                        <div id="areas-accordion">
+
+                                            @foreach ($assignmentHierarchy as $accreditation)
+
+                                                <div class="mb-4">
+                                                <h6 class="fw-bold mb-2">
+                                                        {{ $accreditation['title'] }} {{ $accreditation['year'] }}
+                                                    </h6>
+                                                    <p class="text mb-2">
+                                                        Level: <span class="fw-bold">{{ $accreditation['level'] }}</span>
                                                     </p>
 
-                                                    <div class="row g-3 mb-3">
+                                                    @foreach ($accreditation['programs'] as $program)
+                                                        
+                                                        <p class="text mb-2">
+                                                            Program: <span class="fw-bold">{{ $program['name'] }}</span>
+                                                        </p>
 
-                                                        @foreach ($program['areas'] as $area)
-                                                            {{-- AREA CARD --}}
-                                                            <div class="col-md-4">
-                                                                <div class="card h-100 border shadow-sm">
-                                                                    <div class="card-body">
-                                                                        <h6 class="fw-semibold mb-2">
-                                                                            {{ $area['name'] }}
-                                                                        </h6>
+                                                        <div class="row g-3 mb-3">
 
-                                                                        <button class="btn btn-sm btn-outline-primary w-100"
-                                                                            data-bs-toggle="collapse"
-                                                                            data-bs-target="#area-details-{{ md5($area['name']) }}">
-                                                                            View Details
-                                                                        </button>
+                                                            @foreach ($program['areas'] as $areaId => $area)
+
+                                                                {{-- ================= AREA CARD ================= --}}
+                                                                <div class="col-md-4">
+                                                                    <div class="card h-100 border shadow-sm">
+                                                                        <div class="card-body">
+                                                                            <h6 class="fw-semibold mb-2">
+                                                                                {{ $area['name'] }}
+                                                                            </h6>
+
+                                                                            <button
+                                                                                class="btn btn-sm btn-outline-primary w-100"
+                                                                                data-bs-toggle="collapse"
+                                                                                data-bs-target="#area-details-{{ $areaId }}"
+                                                                                aria-expanded="false"
+                                                                                aria-controls="area-details-{{ $areaId }}">
+                                                                                View Details
+                                                                            </button>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
 
-                                                            {{-- DETAILS TABLE --}}
-                                                            <div class="col-12">
-                                                                <div class="collapse mt-2"
-                                                                    id="area-details-{{ md5($area['name']) }}">
+                                                                {{-- ================= COLLAPSIBLE DETAILS ================= --}}
+                                                                <div class="col-12">
 
-                                                                    <div class="card border">
-                                                                        <div class="card-body p-0">
-                                                                            <div class="table-responsive">
-                                                                                <table
-                                                                                    class="table table-sm table-bordered mb-0">
-                                                                                    <thead class="table-light">
-                                                                                        <tr>
-                                                                                            <th>Parameter</th>
-                                                                                            <th>Sub-parameter</th>
-                                                                                            <th>File</th>
-                                                                                            <th>Status</th>
-                                                                                            <th>Action</th>
-                                                                                        </tr>
-                                                                                    </thead>
-                                                                                    <tbody>
-                                                                                        @foreach ($area['parameters'] as $parameter)
-                                                                                            @foreach ($parameter['sub_parameters'] as $sub)
-                                                                                                @php
-                                                                                                    $documents =
-                                                                                                        $sub[
-                                                                                                            'documents'
-                                                                                                        ] ?? [];
-                                                                                                @endphp
+                                                                    <div id="area-details-{{ $areaId }}"
+                                                                        class="collapse mt-3"
+                                                                        data-bs-parent="#areas-accordion">
 
-                                                                                                {{-- NO DOCUMENTS --}}
-                                                                                                @if (count($documents) === 0)
-                                                                                                    <tr>
-                                                                                                        <td>{{ $parameter['name'] }}
-                                                                                                        </td>
-                                                                                                        <td>{{ $sub['name'] }}
-                                                                                                        </td>
-                                                                                                        <td colspan="3"
-                                                                                                            class="text-muted fst-italic">
-                                                                                                            No documents
-                                                                                                            uploaded
-                                                                                                        </td>
-                                                                                                    </tr>
-                                                                                                @else
-                                                                                                    {{-- HAS DOCUMENTS --}}
-                                                                                                    @foreach ($documents as $doc)
-                                                                                                        <tr>
-                                                                                                            <td>{{ $parameter['name'] }}
-                                                                                                            </td>
-                                                                                                            <td>{{ $sub['name'] }}
-                                                                                                            </td>
-                                                                                                            <td>
-                                                                                                                <a href="{{ Storage::url($doc['file_path']) }}"
-                                                                                                                    target="_blank">
-                                                                                                                    {{ $doc['file_name'] }}
-                                                                                                                </a>
-                                                                                                            </td>
-                                                                                                            <td>
-                                                                                                                <span
-                                                                                                                    class="badge bg-success">
-                                                                                                                    {{ $doc['status'] }}
-                                                                                                                </span>
-                                                                                                            </td>
-                                                                                                            <td>
-                                                                                                                <a href="{{ Storage::url($doc['file_path']) }}"
-                                                                                                                    target="_blank"
-                                                                                                                    class="btn btn-sm btn-outline-primary">
-                                                                                                                    View
-                                                                                                                </a>
-                                                                                                            </td>
-                                                                                                        </tr>
+                                                                        <div class="card border">
+                                                                            <div class="card-body p-0">
+
+                                                                                {{-- ========== TASK FORCE VIEW ========== --}}
+                                                                                @if ($isTaskForce)
+
+                                                                                    <div class="table-responsive">
+                                                                                        <table class="table table-sm table-bordered mb-0">
+                                                                                            <thead class="table-light">
+                                                                                                <tr>
+                                                                                                    <th>Parameter</th>
+                                                                                                    <th>Sub-parameter</th>
+                                                                                                    <th>File</th>
+                                                                                                    <th>Status</th>
+                                                                                                    <th>Action</th>
+                                                                                                </tr>
+                                                                                            </thead>
+
+                                                                                            <tbody>
+                                                                                                @foreach ($area['parameters'] ?? [] as $parameter)
+                                                                                                    @foreach ($parameter['sub_parameters'] as $sub)
+
+                                                                                                        @php
+                                                                                                            $documents = $sub['documents'] ?? [];
+                                                                                                        @endphp
+
+                                                                                                        @if (count($documents) === 0)
+                                                                                                            <tr>
+                                                                                                                <td>{{ $parameter['name'] }}</td>
+                                                                                                                <td>{{ $sub['name'] }}</td>
+                                                                                                                <td colspan="3"
+                                                                                                                    class="text-muted fst-italic">
+                                                                                                                    No documents uploaded
+                                                                                                                </td>
+                                                                                                            </tr>
+                                                                                                        @else
+                                                                                                            @foreach ($documents as $doc)
+                                                                                                                <tr>
+                                                                                                                    <td>{{ $parameter['name'] }}</td>
+                                                                                                                    <td>{{ $sub['name'] }}</td>
+                                                                                                                    <td>
+                                                                                                                        <a href="{{ Storage::url($doc['file_path']) }}"
+                                                                                                                        target="_blank">
+                                                                                                                            {{ $doc['file_name'] }}
+                                                                                                                        </a>
+                                                                                                                    </td>
+                                                                                                                    <td>
+                                                                                                                        <span class="badge bg-success">
+                                                                                                                            {{ $doc['status'] }}
+                                                                                                                        </span>
+                                                                                                                    </td>
+                                                                                                                    <td>
+                                                                                                                        <a href="{{ Storage::url($doc['file_path']) }}"
+                                                                                                                        target="_blank"
+                                                                                                                        class="btn btn-sm btn-outline-primary">
+                                                                                                                            View
+                                                                                                                        </a>
+                                                                                                                    </td>
+                                                                                                                </tr>
+                                                                                                            @endforeach
+                                                                                                        @endif
                                                                                                     @endforeach
-                                                                                                @endif
-                                                                                            @endforeach
-                                                                                        @endforeach
-                                                                                    </tbody>
+                                                                                                @endforeach
+                                                                                            </tbody>
+                                                                                        </table>
+                                                                                    </div>
+                                                                                @endif
 
-                                                                                </table>
+                                                                                {{-- ========== INTERNAL ASSESSOR VIEW ========== --}}
+                                                                                @if ($isInternalAssessor)
+
+                                                                                    @php
+                                                                                        $evaluation = $area['evaluation'] ?? null;
+                                                                                    @endphp
+
+                                                                                    <div class="p-3">
+                                                                                        <div class="d-flex justify-content-between mb-3">
+                                                                                            <strong>Evaluation Status</strong>
+
+                                                                                            @if ($evaluation && $evaluation['status'] === 'Evaluated')
+                                                                                    
+                                                                                                <span class="badge bg-success">
+                                                                                                    Evaluated
+                                                                                                </span>
+                                                                                            @else
+                                                                                                <span class="badge bg-warning text-dark">
+                                                                                                    Pending
+                                                                                                </span>
+                                                                                            @endif
+                                                                                        </div>
+
+                                                                                        <button class="btn btn-sm btn-outline-primary mt-2"
+                                                                                            data-bs-toggle="collapse"
+                                                                                            data-bs-target="#evaluation-{{ $areaId }}">
+                                                                                            <i class="bx bx-show me-1"></i> View Evaluation
+                                                                                        </button>
+
+                                                                                        {{-- UPDATED INFO --}}
+                                                                                        @if ($evaluation && ($evaluation['is_updated'] ?? false))
+                                                                                            <p class="text-muted small mb-2">
+                                                                                                Last updated:
+                                                                                                {{ \Carbon\Carbon::parse($evaluation['updated_at'])
+                                                                                                    ->format('M d, Y h:i A') }}
+                                                                                            </p>
+                                                                                        @endif
+
+                                                                                        {{-- SUMMARY --}}
+                                                                                        @if ($evaluation && $evaluation['status'] === 'Evaluated')
+
+                                                                                            <div class="mb-2">
+                                                                                                <span class="fw-semibold">Area Mean:</span>
+                                                                                                <span class="badge bg-success ms-2">
+                                                                                                    {{ number_format($evaluation['area_mean'], 2) }}
+                                                                                                </span>
+                                                                                            </div>
+
+                                                                                            @if (!empty($evaluation['recommendations']))
+                                                                                                <div>
+                                                                                                    <span class="fw-semibold">Recommendations:</span>
+                                                                                                    <ul class="mt-2 mb-0">
+                                                                                                        @foreach ($evaluation['recommendations'] as $rec)
+                                                                                                            <li>{{ $rec }}</li>
+                                                                                                        @endforeach
+                                                                                                    </ul>
+                                                                                                </div>
+                                                                                            @else
+                                                                                                <p class="text-muted fst-italic mb-0">
+                                                                                                    No recommendations provided.
+                                                                                                </p>
+                                                                                            @endif
+
+                                                                                        @else
+                                                                                            <p class="text-muted fst-italic mb-0">
+                                                                                                No evaluation submitted for this area.
+                                                                                            </p>
+                                                                                        @endif
+
+                                                                                    </div>
+                                                                                @endif
+
                                                                             </div>
                                                                         </div>
                                                                     </div>
-
                                                                 </div>
-                                                            </div>
-                                                        @endforeach
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        @endforeach
+
+                                                            @endforeach
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            @endforeach
+
+                                        </div> {{-- END ACCORDION --}}
+
                                     @endif
                                 </div>
                             </div>

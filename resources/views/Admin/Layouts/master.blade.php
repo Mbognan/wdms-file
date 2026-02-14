@@ -72,8 +72,21 @@
                         <ul class="navbar-nav flex-row align-items-center ms-auto">
                             <li class="nav-item navbar-dropdown dropdown-user dropdown">
                                 <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
+                                    @php $user = auth()->user(); @endphp
                                     <div class="avatar avatar-online">
-                                        <img src="{{ asset('assets/img/avatars/1.png') }}" alt class="w-px-40 h-auto rounded-circle" />
+                                        @if ($user->profile_photo)
+                                            <img
+                                                src="{{ asset('storage/' . $user->profile_photo) }}"
+                                                alt="Avatar"
+                                                class="w-px-40 h-px-40 rounded-circle object-fit-cover border border-primary"
+                                            />
+                                        @else
+                                            <img
+                                                src="{{ asset('assets/img/avatars/1.png') }}"
+                                                alt="Default Avatar"
+                                                class="w-px-40 h-px-40 rounded-circle object-fit-cover border border-2 border-primary"
+                                            />
+                                        @endif
                                     </div>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end">

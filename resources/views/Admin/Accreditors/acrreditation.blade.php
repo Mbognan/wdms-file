@@ -21,7 +21,7 @@
 <div class="container-xxl container-p-y">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4>
-            <span class="text-muted fw-light">Admin /</span> Accreditation
+            <span class="text-muted fw-light"></span> Accreditation
         </h4>
         @if($isAdmin)
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAccreditationModal">

@@ -2,6 +2,7 @@
 
 namespace App\Models\ADMIN;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -18,7 +19,7 @@ class InfoLevelProgramMapping extends Model
         'accreditation_info_id',
         'program_id',
         'level_id',
-
+        'deleted_by'
     ];
     // InfoLevelProgramMapping.php
     public function accreditationInfo()
@@ -39,5 +40,20 @@ class InfoLevelProgramMapping extends Model
     public function programAreas()
     {
         return $this->hasMany(ProgramAreaMapping::class, 'info_level_program_mapping_id');
+    }
+
+    public function deletedBy()
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
+    }
+
+    protected static function booted()
+    {
+        static::deleting(function ($model) {
+            if (! $model->isForceDeleting()) {
+                $model->deleted_by = auth()->id();
+                $model->saveQuietly();
+            }
+        });
     }
 }
