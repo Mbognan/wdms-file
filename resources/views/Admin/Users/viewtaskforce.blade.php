@@ -150,9 +150,13 @@
                                         </p>
                                     </div>
 
-                                    <button class="btn btn-danger" onclick="terminateUser({{ $user->id }})">
-                                        <i class="bx bx-trash me-1"></i> Terminate User
-                                    </button>
+                                   <button
+    class="btn btn-danger btn-terminate"
+    data-id="{{ $user->id }}"
+    data-url="{{ url('/users/' . $user->id . '/suspend') }}">
+    <i class="bx bx-trash me-1"></i> Terminate User
+</button>
+
                                 </div>
                             </div>
                         </div>

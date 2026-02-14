@@ -44,6 +44,17 @@
 </head>
 
 <body>
+<style>
+
+.swal2-container {
+    z-index: 99999 !important;
+}
+
+
+.swal2-backdrop-show {
+    background: rgba(0, 0, 0, 0.6) !important;
+}
+</style>
 
 <!-- Layout wrapper -->
 <div class="layout-wrapper layout-content-navbar">
@@ -72,21 +83,8 @@
                         <ul class="navbar-nav flex-row align-items-center ms-auto">
                             <li class="nav-item navbar-dropdown dropdown-user dropdown">
                                 <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
-                                    @php $user = auth()->user(); @endphp
                                     <div class="avatar avatar-online">
-                                        @if ($user->profile_photo)
-                                            <img
-                                                src="{{ asset('storage/' . $user->profile_photo) }}"
-                                                alt="Avatar"
-                                                class="w-px-40 h-px-40 rounded-circle object-fit-cover border border-primary"
-                                            />
-                                        @else
-                                            <img
-                                                src="{{ asset('assets/img/avatars/1.png') }}"
-                                                alt="Default Avatar"
-                                                class="w-px-40 h-px-40 rounded-circle object-fit-cover border border-2 border-primary"
-                                            />
-                                        @endif
+                                        <img src="{{ asset('assets/img/avatars/1.png') }}" alt class="w-px-40 h-auto rounded-circle" />
                                     </div>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end">
@@ -95,9 +93,7 @@
                                         <a class="dropdown-item" href="#">
                                             <div class="d-flex">
                                                 <div class="flex-shrink-0 me-3">
-                                                    <div class="avatar avatar-online">
-                                                        <img src="{{ asset('assets/img/avatars/1.png') }}" alt class="w-px-40 h-auto rounded-circle" />
-                                                    </div>
+
                                                 </div>
                                                 <div class="flex-grow-1">
                                                     <span class="fw-medium d-block">{{ auth()->user()->name }}</span>
@@ -177,8 +173,6 @@
 
 
 
-</div>
- <div class="toast-container position-fixed top-0 end-0 p-3" id="globalToastContainer"  style="z-index: 2000;"></div>
 <!-- Core JS -->
 <script src="{{ asset('assets/vendor/libs/jquery/jquery.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -204,6 +198,7 @@
 <script async defer src="https://buttons.github.io/buttons.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
 
 <script>
 function showToast(message, type = 'success') {
@@ -295,6 +290,65 @@ function showToast(message, type = 'success') {
 //         });
 //     });
 // });
+
+$(document).on('click', '.btn-terminate', function () {
+
+    const button = $(this);
+    const userId = button.data('id');
+    const url = button.data('url');
+
+    Swal.fire({
+        title: "Are you sure?",
+        text: "This user will be terminated and cannot access the system!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, terminate user"
+    }).then((result) => {
+
+        if (!result.isConfirmed) return;
+
+        $.ajax({
+            url: url,
+            type: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            beforeSend: function () {
+                button.prop('disabled', true);
+            },
+            success: function (res) {
+
+                // Reload DataTable
+                if ($.fn.DataTable.isDataTable('#taskforce-table')) {
+                    $('#taskforce-table').DataTable().ajax.reload(null, false);
+                }
+
+                Swal.fire({
+                    icon: "success",
+                    title: "Terminated!",
+                    text: res.message ?? "User terminated successfully",
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            },
+            error: function () {
+                Swal.fire(
+                    "Error",
+                    "Failed to terminate user.",
+                    "error"
+                );
+            },
+            complete: function () {
+                button.prop('disabled', false);
+            }
+        });
+    });
+});
+
+
+
 </script>
 
 @if(session('success'))
@@ -313,10 +367,69 @@ function showToast(message, type = 'success') {
 </script>
 @endif
 
+<script>
+$(document).on('click', '.btn-terminate', function () {
+
+    const button = $(this);
+    const userId = button.data('id');
+    const url = button.data('url');
+
+    Swal.fire({
+        title: "Are you sure?",
+        text: "This user will be terminated and cannot access the system!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, terminate user"
+    }).then((result) => {
+
+        if (!result.isConfirmed) return;
+
+        $.ajax({
+            url: url,
+            type: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            beforeSend: function () {
+                button.prop('disabled', true);
+            },
+            success: function (res) {
+
+                // Reload DataTable
+                if ($.fn.DataTable.isDataTable('#taskforce-table')) {
+                    $('#taskforce-table').DataTable().ajax.reload(null, false);
+                }
+
+                Swal.fire({
+                    icon: "success",
+                    title: "Terminated!",
+                    text: res.message ?? "User terminated successfully",
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            },
+            error: function () {
+                Swal.fire(
+                    "Error",
+                    "Failed to terminate user.",
+                    "error"
+                );
+            },
+            complete: function () {
+                button.prop('disabled', false);
+            }
+        });
+    });
+});
+</script>
 
 
 @stack('scripts')
 
+</div>
+ <div class="toast-container position-fixed top-0 end-0 p-3" id="globalToastContainer"  style="z-index: 2000;"></div>
 </body>
 </html>
 
