@@ -228,16 +228,23 @@ class AccreditationEvaluationController extends Controller
     /* =========================================================
      | STORE – SAVE AREA EVALUATION (POST)
      ========================================================= */
+
     public function store(Request $request)
     {
         $validated = $request->validate([
             'accred_info_id'  => ['required', 'exists:accreditation_infos,id'],
             'level_id'        => ['required', 'exists:accreditation_levels,id'],
             'program_id'      => ['required', 'exists:programs,id'],
-            'program_area_id' => ['required', 'exists:areas,id'],
+            'program_area_id' => ['required', 'exists:program_area_mappings,id'],
             'evaluations'     => ['required', 'array'],
             'recommendation'  => ['nullable', 'string'],
         ]);
+
+        $programArea = ProgramAreaMapping::findOrFail(
+            $validated['program_area_id']
+        );
+
+        $areaId = $programArea->area_id;
 
         $user = auth()->user();
         $isAccreditor = $user->user_type === UserType::ACCREDITOR;
@@ -249,7 +256,7 @@ class AccreditationEvaluationController extends Controller
                 ->where('accred_info_id', $validated['accred_info_id'])
                 ->where('level_id', $validated['level_id'])
                 ->where('program_id', $validated['program_id'])
-                ->where('area_id', $validated['program_area_id'])
+                ->where('area_id', $areaId)
                 ->where('evaluated_by', $user->id)
                 ->exists();
         }
@@ -257,7 +264,7 @@ class AccreditationEvaluationController extends Controller
         // Accreditor can only evaluate once
         if ($isAccreditor) {
             $alreadyEvaluated = AreaRecommendation::query()
-                ->where('area_id', $validated['program_area_id'])
+                ->where('area_id', $areaId)
                 ->whereHas('evaluation', function ($q) use ($validated, $user) {
                     $q->where('accred_info_id', $validated['accred_info_id'])
                     ->where('level_id', $validated['level_id'])
@@ -274,15 +281,15 @@ class AccreditationEvaluationController extends Controller
         }
 
 
-        $evaluation = DB::transaction(function () use ($validated) {
+        $evaluation = DB::transaction(function () use ($validated, $areaId) {
 
             $evaluation = AccreditationEvaluation::updateOrCreate(
     [
-                    'accred_info_id' => $validated['accred_info_id'],
-                    'level_id'       => $validated['level_id'],
-                    'program_id'     => $validated['program_id'],
-                    'area_id'        => $validated['program_area_id'],
-                    'evaluated_by' => auth()->id(),
+                    'accred_info_id'                 => $validated['accred_info_id'],
+                    'level_id'                       => $validated['level_id'],
+                    'program_id'                     => $validated['program_id'],
+                    'area_id'                        => $areaId,
+                    'evaluated_by'                   => auth()->id(),
                 ],
                 [
                 ]
@@ -305,7 +312,7 @@ class AccreditationEvaluationController extends Controller
             AreaRecommendation::updateOrCreate(
                 [
                     'evaluation_id' => $evaluation->id,
-                    'area_id'       => $validated['program_area_id'],
+                    'area_id'       => $areaId,
                 ],
                 [
                     'recommendation' => $validated['recommendation'],
@@ -323,7 +330,7 @@ class AccreditationEvaluationController extends Controller
                 'program.areas.evaluations.summary',
                 [
                     'evaluation'     => $evaluation->id,
-                    'area'  => $validated['program_area_id'],
+                    'area'  => $areaId,
                 ]
             )
         ]);

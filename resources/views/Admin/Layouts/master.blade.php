@@ -82,18 +82,11 @@
 
                         <ul class="navbar-nav flex-row align-items-center ms-auto">
                             <li class="nav-item navbar-dropdown dropdown-user dropdown">
-                                <a class="nav-link dropdown-toggle d-flex align-items-center gap-2 px-3 py-2 rounded bg-label-primary"
-                                    href="javascript:void(0);" data-bs-toggle="dropdown">
-
-                                    <i class="bx bx-shield-quarter fs-4 text-primary"></i>
-
-                                    <span class="fw-semibold text-primary">
-                                        {{ auth()->user()->user_type }}
-                                    </span>
-
-
+                                <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
+                                    <div class="avatar avatar-online">
+                                        <img src="{{ asset('assets/img/avatars/1.png') }}" alt class="w-px-40 h-auto rounded-circle" />
+                                    </div>
                                 </a>
-
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <!-- User Info -->
                                     <li>

@@ -259,18 +259,28 @@
 
 <!-- Password toggle -->
 <script>
-    document.querySelectorAll('.form-password-toggle .bx-hide, .form-password-toggle .bx-show').forEach(icon => {
-        icon.addEventListener('click', () => {
-            const input = icon.closest('.input-group').querySelector('input');
+document.addEventListener('DOMContentLoaded', function () {
+
+    document.querySelectorAll('.form-password-toggle').forEach(wrapper => {
+
+        const input = wrapper.querySelector('input');
+        const toggle = wrapper.querySelector('.input-group-text');
+        const icon = wrapper.querySelector('i');
+
+        toggle.addEventListener('click', function () {
+
             if (input.type === 'password') {
                 input.type = 'text';
-                icon.classList.replace('bx-hide', 'bx-show');
+                icon.classList.remove('bx-hide');
+                icon.classList.add('bx-show');
             } else {
                 input.type = 'password';
-                icon.classList.replace('bx-show', 'bx-hide');
+                icon.classList.remove('bx-show');
+                icon.classList.add('bx-hide');
             }
         });
     });
+});
 </script>
 
 </body>

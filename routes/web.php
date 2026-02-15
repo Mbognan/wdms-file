@@ -175,7 +175,7 @@ Route::middleware('auth')->group(function () {
 
     // 🗑 Deleted / Withdrawn accreditations
     Route::get('/deleted', [ArchiveController::class, 'deleted'])
-        ->name('deleted');
+        ->name('archive.deleted');
 });
 
 require __DIR__ . '/auth.php';

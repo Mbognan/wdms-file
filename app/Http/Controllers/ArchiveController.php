@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ADMIN\AccreditationInfo;
+use App\Models\ADMIN\InfoLevelProgramMapping;
 use Illuminate\Http\Request;
 
 class ArchiveController extends Controller
@@ -33,6 +34,24 @@ class ArchiveController extends Controller
         return view(
             'admin.accreditors.archive-complete',
             compact('accreditations')
+        );
+    }
+
+    public function deleted()
+    {
+        $deletedPrograms = InfoLevelProgramMapping::onlyTrashed()
+            ->with([
+                'accreditationInfo',
+                'level',
+                'program',
+                'deletedBy',
+            ])
+            ->latest('deleted_at')
+            ->get();
+
+        return view(
+            'admin.accreditors.archive-deleted',
+            compact('deletedPrograms')
         );
     }
 }

@@ -37,7 +37,7 @@
 
         {{-- DELETED / WITHDRAWN FOLDER --}}
         <div class="col-md-4">
-            <a  class="text-decoration-none">
+            <a  href={{ route('archive.deleted') }} class="text-decoration-none">
                 <div class="card archive-folder shadow-sm h-100">
                     <div class="card-body text-center">
 
