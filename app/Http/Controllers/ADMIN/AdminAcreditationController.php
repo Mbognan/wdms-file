@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\ADMIN;
 
+use App\Enums\TaskForceRole;
 use App\Enums\VisitType;
 use App\Http\Controllers\Controller;
 use App\Models\ADMIN\AccreditationAssignment;
@@ -25,6 +26,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Enum;
 
 class AdminAcreditationController extends Controller
 {
@@ -375,22 +377,8 @@ class AdminAcreditationController extends Controller
 
         $users = $usersQuery->get();
 
-        /**
-         * ---------------------------------------
-         * ASSIGNED USERS
-         * ---------------------------------------
-         */
-        $assignedUserIds = AccreditationAssignment::where([
-            'accred_info_id' => $infoId,
-            'level_id' => $levelId,
-            'program_id' => $program->program_id,
-        ])
-            ->pluck('user_id')
-            ->unique()
-            ->values();
-
-        // Only users NOT yet assigned
-        $availableUsers = $users->whereNotIn('id', $assignedUserIds);
+        // All available users
+        $availableUsers = $users;
 
         /**
          * ---------------------------------------
@@ -441,7 +429,6 @@ class AdminAcreditationController extends Controller
             'programId' => $program->program_id,
             'users' => $availableUsers,
             'programAreas' => $programAreas,
-            'assignedUserIds' => $assignedUserIds,
             'isAdmin' => $isAdmin,
             'isDean' => $isDean
         ]);
@@ -550,49 +537,21 @@ class AdminAcreditationController extends Controller
                 if (!empty($areaData['users'])) {
                     foreach ($areaData['users'] as $userId) {
 
-                        \Log::info('Checking if user already assigned', [
-                            'user_id' => $userId,
-                            'accred_info_id' => $context->id,
-                            'level_id' => $context->id
-                        ]);
-
+                        // Prevent duplicate user in same area
                         $alreadyAssigned = AccreditationAssignment::where([
                             'user_id' => $userId,
-                            'accred_info_id' => $context->accreditation_info_id,
-                            'level_id' => $context->level_id,
-                            'program_id' => $context->program_id,
+                            'accred_info_id' => $request->accreditation_info_id,
+                            'level_id' => $request->level_id,
+                            'program_id' => $request->program_id,
+                            'area_id' => $request->area_id,
                         ])->exists();
 
-
                         if ($alreadyAssigned) {
-                            \Log::warning('User already assigned', [
-                                'user_id' => $userId,
-                                'context_id' => $context->id
-                            ]);
-
-                            DB::rollBack();
-
                             return response()->json([
                                 'success' => false,
-                                'message' => 'One or more users are already assigned to another area in this accreditation.'
+                                'message' => 'This user is already assigned to this area.'
                             ], 422);
                         }
-
-                        AccreditationAssignment::create([
-                            'user_id' => $userId,
-                            'accred_info_id' => $context->accreditation_info_id, // ✅ correct
-                            'level_id' => $context->level_id,                   // ✅ correct
-                            'program_id' => $context->program_id,               // ✅ correct
-                            'area_id' => $programArea->id
-                        ]);
-
-
-                        \Log::info('User assigned successfully', [
-
-                            'user_id' => $userId,
-                            'program_area_id' => $programArea->id,
-                            'context_id' => $context->id
-                        ]);
                     }
                 }
             }
@@ -631,7 +590,8 @@ class AdminAcreditationController extends Controller
             'level_id' => 'required|exists:accreditation_levels,id',
             'accreditation_info_id' => 'required|exists:accreditation_infos,id',
             'users' => 'array',
-            'users.*' => 'exists:users,id',
+            'users.*.id' => 'exists:users,id',
+            'users.*.role' => ['nullable', new Enum(TaskForceRole::class)]
         ]);
 
         DB::beginTransaction();
@@ -655,18 +615,65 @@ class AdminAcreditationController extends Controller
 
             // 4️⃣ Assign users (no duplicate check)
             if (!empty($request->users)) {
-                foreach ($request->users as $userId) {
+                
+                foreach ($request->users as $userData) {
+
+                    // 🔥 HANDLE ADMIN (simple array: users[])
+                    if (is_numeric($userData)) {
+                        $userId = $userData;
+                        $role = TaskForceRole::MEMBER; // default role
+                    } else {
+                        // 🔥 HANDLE DEAN (users[id][role])
+                        $userId = $userData['id'];
+                        $role = isset($userData['role'])
+                            ? TaskForceRole::from($userData['role'])
+                            : TaskForceRole::MEMBER;
+                    }
+
+                    $user = User::findOrFail($userId);
+
+                    // ✅ Only enforce chair rule if role exists
+                    if ($role === TaskForceRole::CHAIR) {
+
+                        $existingChair = AccreditationAssignment::where([
+                            'accred_info_id' => $context->accreditation_info_id,
+                            'level_id' => $context->level_id,
+                            'program_id' => $context->program_id,
+                            'area_id' => $programArea->id,
+                            'role' => TaskForceRole::CHAIR,
+                        ])->exists();
+
+                        if ($existingChair) {
+                            return response()->json([
+                                'success' => false,
+                                'message' => 'This area already has a chair.'
+                            ], 422);
+                        }
+                    }
+
+                    // ✅ Prevent duplicate assignment
+                    $exists = AccreditationAssignment::where([
+                        'user_id' => $userId,
+                        'accred_info_id' => $context->accreditation_info_id,
+                        'level_id' => $context->level_id,
+                        'program_id' => $context->program_id,
+                        'area_id' => $programArea->id,
+                    ])->exists();
+
+                    if ($exists) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => "{$user->name} is already assigned."
+                        ], 422);
+                    }
+
                     AccreditationAssignment::create([
                         'user_id' => $userId,
                         'accred_info_id' => $context->accreditation_info_id,
                         'level_id' => $context->level_id,
                         'program_id' => $context->program_id,
                         'area_id' => $programArea->id,
-                    ]);
-
-                    \Log::info('User assigned', [
-                        'user_id' => $userId,
-                        'area_id' => $programArea->id
+                        'role' => $role,
                     ]);
                 }
             }
@@ -675,9 +682,23 @@ class AdminAcreditationController extends Controller
 
             \Log::info('assignUsersToArea SUCCESS');
 
+            
+            $assignedUsers = AccreditationAssignment::where([
+                'accred_info_id' => $context->accreditation_info_id,
+                'level_id' => $context->level_id,
+                'program_id' => $context->program_id,
+                'area_id' => $programArea->id,
+            ])->with('user')->get()->pluck('user');
+
             return response()->json([
-                'success' => true,
-                'message' => 'Users assigned successfully.'
+                'message' => 'Users assigned successfully.',
+                'area_id' => $programArea->id,
+                'users' => $assignedUsers->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                    ];
+                })->values(),
             ]);
 
         } catch (\Throwable $e) {
@@ -713,28 +734,38 @@ class AdminAcreditationController extends Controller
 
         $programArea = ProgramAreaMapping::with([
             'area',
-
-            // FILTER USERS BY ROLE
-            'users' => function ($q) use ($isAdmin, $isDean, $isTaskForce, $isInternalAssessor) {
-                if ($isAdmin) {
-                    $q->where('user_type', UserType::INTERNAL_ASSESSOR);
-                }
-
-                if ($isDean || $isTaskForce) {
-                    $q->where('user_type', UserType::TASK_FORCE);
-                }
-
-                if ($isInternalAssessor) {
-                    $q->where('user_type', UserType::INTERNAL_ASSESSOR);
-                }
-            },
-
-            // parameters + sub parameters always visible
             'parameters.sub_parameters'
         ])
-            ->where('id', $programAreaId)
-            ->where('info_level_program_mapping_id', $context->id)
-            ->firstOrFail();
+        ->where('id', $programAreaId)
+        ->where('info_level_program_mapping_id', $context->id)
+        ->firstOrFail();
+
+        $assignments = AccreditationAssignment::with('user')
+            ->where('accred_info_id', $infoId)
+            ->where('level_id', $levelId)
+            ->where('program_id', $programId)
+            ->where('area_id', $programArea->area->id)
+            ->get();
+
+        // FILTER ASSIGNMENTS BASED ON LOGGED-IN USER
+        if ($isAdmin) {
+            $assignments = $assignments->filter(fn ($a) =>
+                in_array($a->user->user_type, [UserType::INTERNAL_ASSESSOR, UserType::ACCREDITOR])
+            );
+        } elseif ($isInternalAssessor) {
+            $assignments = $assignments->filter(fn ($a) =>
+                $a->user->user_type === UserType::INTERNAL_ASSESSOR
+            );
+        } elseif ($isDean || $isTaskForce || $isInternalAssessor) {
+            $assignments = $assignments->filter(fn ($a) =>
+                $a->user->user_type === UserType::TASK_FORCE
+            );
+
+            // SORT TASK FORCE: Chair first, then Member
+            $assignments = $assignments->sortByDesc(fn ($a) =>
+                strtolower($a->role?->value) === 'chair' ? 1 : 0
+            );
+        }
 
         return view('admin.accreditors.parameter', [
             'infoId'        => $infoId,
@@ -743,14 +774,17 @@ class AdminAcreditationController extends Controller
             'programAreaId' => $programAreaId,
             'context'       => $context,
             'programArea'   => $programArea,
+            'assignments'   => $assignments,
             'parameters'    => $programArea->parameters,
             'isAdmin'       => $isAdmin,
             'isDean'        => $isDean,
+            'isTaskForce'   => $isTaskForce,
             'isIA'          => $isInternalAssessor,
             'isAccreditor'  => $isAccreditor,
             'loggedInUser'  => $user
         ]);
     }
+
 
     public function storeParameters(Request $request, $programAreaMappingId)
     {

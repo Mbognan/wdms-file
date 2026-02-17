@@ -79,11 +79,24 @@
                         {{ $isAdmin || $isIA ? 'Internal Assessors' : 'Task Forces' }}
                     </h6>
                     <div class="users-grid">
-                        @foreach ($programArea->users as $user)
+                        @foreach ($assignments as $assignment)
                             <div class="user-box">
-                                <div class="user-avatar">{{ strtoupper(substr($user->name, 0, 2)) }}</div>
-                                <div class="user-name">{{ $user->name }} {{ $loggedInUser->name === $user->name ? '(You)' : '' }}</div>
-                                <div class="user-name text-primary">{{ $user->user_type }}</div>
+                                <div class="user-avatar">
+                                    {{ strtoupper(substr($assignment->user->name, 0, 2)) }}
+                                </div>
+
+                                <div class="user-name">
+                                    {{ $assignment->user->name }}
+                                    {{ $loggedInUser->id === $assignment->user->id ? '(You)' : '' }}
+                                </div>
+
+                                <div class="user-name text-primary">
+                                    {{-- Admin only sees "Internal Assessor", else show role from assignment --}}
+                                    {{ ($isAdmin && !$isTaskForce) 
+                                        ? $assignment->user->user_type
+                                        : strtoupper($assignment->role->value) 
+                                    }}
+                                </div>
                             </div>
                         @endforeach
                     </div>
