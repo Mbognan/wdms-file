@@ -227,7 +227,7 @@
                     </div>
                 </div>
 
-                {{-- ================= INTERNAL GRAND MEAN MODAL ================= --}}
+                {{-- ================= INTERNAL ASSESSOR GRAND MEAN MODAL ================= --}}
                 @php
                     $gm = $grandMeans[$key]['internal'] ?? null;
                     $internalSignatories = $signatories[$key]['internal'] ?? [];
@@ -335,7 +335,6 @@
                                         </div>
                                     @endforeach
                                 </div>
-
                             </div>
 
                             {{-- FOOTER --}}
@@ -369,7 +368,25 @@
     width: 260px;
     border-bottom: 1.5px solid #000;
     margin-top: 4px;
+    
 }
+
+@media print {
+    .signature-block {
+        display: block !important;
+        width: 100% !important;       /* full width, so they never sit side by side */
+        text-align: center !important;
+        margin: 30px 0 !important;    /* vertical spacing between signatories */
+        float: none !important;
+    }
+
+    .signature-line {
+        width: 260px;                 /* fixed line length */
+        border-bottom: 1.5px solid #000;
+        margin: 6px auto 0;           /* center line horizontally */
+    }
+}
+
 </style>
 
 @push('scripts')

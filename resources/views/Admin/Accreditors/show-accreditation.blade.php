@@ -6,14 +6,13 @@
     {{-- ================= HEADER ================= --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4>
-            <span class="text-muted fw-light">Admin / Accreditation /</span>
-            View Details
+            <a href="{{ route('admin.accreditation.index') }}">
+                <span class="text-muted fw-light">Accreditation</span>
+            </a>
+            / View Details
         </h4>
 
         <div class="d-flex gap-2">
-            <a href="{{ url()->previous() }}" class="btn btn-outline-secondary">
-                <i class="bx bx-arrow-back me-1"></i> Back
-            </a>
             @if ($isAdmin)
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editAccreditationModal">
                     <i class="bx bx-edit me-1"></i> Edit Accreditation

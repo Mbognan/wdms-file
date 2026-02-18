@@ -101,42 +101,50 @@ class AccreditationEvaluationController extends Controller
                     foreach ($ratingsByArea as $areaId => $ratings) {
 
                         $totalScore = 0;
-                        $count = 0;
+                        $applicableCount = 0;
 
                         foreach ($ratings as $rating) {
+
                             $label = $rating->ratingOption->label;
 
                             if (in_array($label, ['Available', 'Available but Inadequate'])) {
                                 $totalScore += $rating->score;
-                                $count++;
+                                $applicableCount++;
+                            }
+                            elseif ($label === 'Not Available') {
+                                $applicableCount++;
                             }
                         }
 
-                        if ($count > 0) {
-                            $areaMeans[$areaId][] = $totalScore / $count;
+                        if ($applicableCount > 0) {
+                            $areaMeans[$areaId][] = round($totalScore / $applicableCount, 2);
                         }
                     }
                 }
 
-                $finalAreaMeans = collect($areaMeans)
-                    ->map(fn ($means) => collect($means)->avg());
+               $finalAreaMeans = collect($areaMeans)
+                    ->map(fn ($means) => round(collect($means)->avg(), 2));
 
-                $areaIds = $filteredEvaluations
-                    ->flatMap(fn ($e) => $e->areaRecommendations->pluck('area_id'))
-                    ->unique()
-                    ->values();
+                // Fetch all area IDs for this program or accreditation
+                $allAreaIds = Area::pluck('id'); // Or filter by program/accreditation if needed
+                $areas = Area::whereIn('id', $allAreaIds)
+                            ->orderBy('id')
+                            ->get();
 
-                $areas = Area::whereIn('id', $areaIds)
-                    ->orderBy('id')
-                    ->get();
+                // Build area means map with defaults
+                $finalAreaMeansMap = [];
+                foreach ($areas as $area) {
+                    $finalAreaMeansMap[$area->id] = $finalAreaMeans[$area->id] ?? 0;
+                }
 
+                // Replace the previous $grandMeans assignment
                 $grandMeans[$key][$type] = [
                     'areaModels' => $areas,
-                    'areas'      => $finalAreaMeans,
-                    'total'      => $finalAreaMeans->sum(),
+                    'areas'      => collect($finalAreaMeansMap),
+                    'total'      => collect($finalAreaMeansMap)->sum(),
                     'grand'      => $areas->count()
-                        ? $finalAreaMeans->sum() / $areas->count()
-                        : 0,
+                                    ? collect($finalAreaMeansMap)->sum() / $areas->count()
+                                    : 0,
                 ];
 
                 $signatories[$key][$type] = $filteredEvaluations
@@ -183,17 +191,16 @@ class AccreditationEvaluationController extends Controller
          * - Others see it locked (read-only)
          */
 
-        $existingEvaluation = AccreditationEvaluation::where([
-                'accred_info_id' => $infoId,
-                'level_id'       => $levelId,
-                'program_id'     => $programId,
-                'area_id'        => $programAreaId,
-            ])
-            ->whereHas('evaluator', function ($q) {
-                $q->where('user_type', UserType::INTERNAL_ASSESSOR);
-            })
-            ->with('evaluator')
-            ->first();
+        $currentUserEvaluation = AccreditationEvaluation::where([
+            'accred_info_id' => $infoId,
+            'level_id'       => $levelId,
+            'program_id'     => $programId,
+            'area_id'        => $programAreaId,
+            'evaluated_by'   => $user->id,
+        ])->first();
+
+        $isEvaluated = $currentUserEvaluation ? true : false;
+
 
         /**
          * Determine lock state
@@ -204,14 +211,21 @@ class AccreditationEvaluationController extends Controller
          */
         $isEvaluated = false;
 
-        if ($existingEvaluation) {
-            $isEvaluated = $existingEvaluation->evaluated_by !== $user->id;
+        if ($currentUserEvaluation) {
+            $isEvaluated = $currentUserEvaluation->evaluated_by !== $user->id;
         }
 
         // Load parameters & subparameters for this area
-        $parameters = Parameter::with('sub_parameters')
-            ->where('area_id', $programArea->area_id)
-            ->get();
+        $parameters = Parameter::with([
+            'sub_parameters.uploads' => function ($q) use ($infoId, $levelId, $programId, $programAreaId) {
+                $q->where('accred_info_id', $infoId)
+                ->where('level_id', $levelId)
+                ->where('program_id', $programId)
+                ->where('program_area_id', $programAreaId);
+            }
+        ])
+        ->where('area_id', $programArea->area_id)
+        ->get();
 
         return view('admin.accreditors.internal-accessor-parameter', [
             'programArea'   => $programArea,
@@ -221,9 +235,10 @@ class AccreditationEvaluationController extends Controller
             'programId'     => $programId,
             'programAreaId' => $programAreaId,
             'isEvaluated'   => $isEvaluated,
-            'evaluatedBy'   => $existingEvaluation?->evaluator?->name,
+            'evaluatedBy' => $currentUserEvaluation?->evaluator?->name,
         ]);
     }
+
 
     /* =========================================================
      | STORE – SAVE AREA EVALUATION (POST)
@@ -296,6 +311,11 @@ class AccreditationEvaluationController extends Controller
             );
 
             foreach ($validated['evaluations'] as $subId => $data) {
+
+                if (!$data || !isset($data['status'])) {
+                    continue;
+                }
+
                 SubparameterRating::updateOrCreate(
                     [
                         'evaluation_id'   => $evaluation->id,
@@ -304,7 +324,7 @@ class AccreditationEvaluationController extends Controller
                     [
                         'rating_option_id' =>
                             $this->mapStatusToRatingOption($data['status']),
-                        'score' => $data['score'],
+                        'score' => $data['score'] ?? 0,
                     ]
                 );
             }
@@ -421,7 +441,7 @@ class AccreditationEvaluationController extends Controller
             'available'       => 0,
             'inadequate'      => 0,
             'not_available'   => 0,
-            'not_applicable'  => 'N/A',
+            'not_applicable'  => 0,
         ];
 
         $totalScore = 0;

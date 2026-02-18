@@ -381,50 +381,50 @@ function programChildRow(info) {
     Object.keys(grouped).forEach((level, idx) => {
         html += `
 
-<div class="card accordion-item border-0 mb-2">
-    <!-- LEVEL HEADER -->
-    <h2 class="accordion-header" id="heading-${info.id}-${idx}">
-        <button type="button"
-                class="accordion-button collapsed"
-                data-bs-toggle="collapse"
-                data-bs-target="#collapse-${info.id}-${idx}"
-                aria-expanded="false">
+        <div class="card accordion-item border-0 mb-2">
+            <!-- LEVEL HEADER -->
+            <h2 class="accordion-header" id="heading-${info.id}-${idx}">
+                <button type="button"
+                        class="accordion-button collapsed"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#collapse-${info.id}-${idx}"
+                        aria-expanded="false">
 
-            <div class="d-flex justify-content-between align-items-center w-100 pe-3">
-                <span class="fw-semibold">
-                    ${level}
-                </span>
+                    <div class="d-flex justify-content-between align-items-center w-100 pe-3">
+                        <span class="fw-semibold">
+                            ${level}
+                        </span>
 
-                <span class="badge bg-label-primary">
-                    ${grouped[level].length}
-                </span>
+                        <span class="badge bg-label-primary">
+                            ${grouped[level].length}
+                        </span>
+                    </div>
+
+                </button>
+            </h2>
+
+            <!-- PROGRAMS LIST INSIDE (UNCHANGED) -->
+            <div id="collapse-${info.id}-${idx}" class="accordion-collapse collapse" data-bs-parent="#accordion-${info.id}">
+                <div class="accordion-body pt-0">
+
+                    <hr class="my-2">
+
+                    <div class="list-group list-group-flush ps-4">
+                `;
+
+                grouped[level].forEach(p => {
+                html += `
+                    <a href="/admin/accreditations/${info.id}/level/${p.level_id}/program/${encodeURIComponent(p.name)}"
+                    class="list-group-item list-group-item-action py-2">
+                        ${p.name}
+                    </a>`;
+                });
+
+                html += `
+                    </div>
+                </div>
             </div>
-
-        </button>
-    </h2>
-
-    <!-- PROGRAMS LIST INSIDE (UNCHANGED) -->
-    <div id="collapse-${info.id}-${idx}" class="accordion-collapse collapse" data-bs-parent="#accordion-${info.id}">
-        <div class="accordion-body pt-0">
-
-            <hr class="my-2">
-
-            <div class="list-group list-group-flush ps-4">
-        `;
-
-        grouped[level].forEach(p => {
-        html += `
-            <a href="/admin/accreditations/${info.id}/level/${p.level_id}/program/${encodeURIComponent(p.name)}"
-            class="list-group-item list-group-item-action py-2">
-                ${p.name}
-            </a>`;
-        });
-
-        html += `
-            </div>
-        </div>
-    </div>
-</div>`;
+        </div>`;
     });
 
     html += `

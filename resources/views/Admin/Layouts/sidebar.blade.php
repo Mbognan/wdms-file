@@ -1,9 +1,20 @@
 @php
     use App\Enums\UserType;
+
     $user = auth()->user();
+
+    // Define sidebar color class based on user type
+    $sidebarClass = match ($user->user_type) {
+        UserType::ADMIN => 'sidebar-admin',
+        UserType::DEAN => 'sidebar-dean',
+        UserType::TASK_FORCE => 'sidebar-taskforce',
+        UserType::INTERNAL_ASSESSOR => 'sidebar-internal',
+        UserType::ACCREDITOR => 'sidebar-accreditor',
+        default => 'sidebar-default',
+    };
 @endphp
 
-<aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+<aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme {{ $sidebarClass }}">
     <div class="app-brand demo">
         <a href="#" class="app-brand-link">
             <span class="app-brand-logo demo">

@@ -33,7 +33,7 @@
 </style>
 
 <div class="container-xxl container-p-y"
-     x-data="areaEvaluation({{ $isEvaluated ? 'true' : 'false' }})"
+     x-data="areaEvaluation(@json($currentUserEvaluation ? true : false))"
      x-init="init()">
 
     {{-- BACK --}}
@@ -48,19 +48,26 @@
     <p class="text-muted mb-4">Program Area Evaluation</p>
 
     {{-- LOCK WARNING --}}
-    @if($isEvaluated)
-        <div class="alert alert-warning">
+    <div 
+        x-cloak
+        class="alert alert-warning d-flex justify-content-between align-items-center"
+        x-show="locked"
+        x-transition
+    >
+        <div>
             <i class="bx bx-lock"></i>
-            This area has already been evaluated. Editing is disabled.
+            This area has already evaluated by you. Click ‘Edit Evaluation’ to make changes if needed.
         </div>
-    @endif
+        <button class="btn btn-sm btn-warning" @click="unlockForm()">
+            <i class="bx bx-edit"></i> Edit Evaluation
+        </button>
+    </div>
 
     {{-- ASSIGNED USERS --}}
     @if ($programArea->users->count() > 0)
     <div class="card mb-4">
         <div class="card-body">
             <h6 class="fw-bold mb-3">Assigned Internal Assessors</h6>
-
             <div class="users-grid">
                 @foreach ($programArea->users as $user)
                     <div class="user-box">
@@ -69,14 +76,10 @@
                         </div>
                         <div class="user-name">
                             {{ $user->name }}
-                            @if (
-                                $user->id === auth()->id() &&
-                                $user->user_type === \App\Enums\UserType::INTERNAL_ASSESSOR
-                            )
+                            @if ($user->id === auth()->id() && $user->user_type === \App\Enums\UserType::INTERNAL_ASSESSOR)
                                 <span class="text-muted">(You)</span>
                             @endif
                         </div>
-
                         <div class="user-name text-primary">
                             {{ $user->user_type }}
                         </div>
@@ -95,15 +98,33 @@
             <table class="table table-bordered table-sm align-middle">
                 <thead class="table-light">
                     <tr class="text-center">
-                        <th style="width:35%">Checklist Item</th>
-                        <th>Available<br><small>(5–4–3)</small></th>
-                        <th>Available but Inadequate<br><small>(2–1)</small></th>
-                        <th>Not Available<br><small>(0)</small></th>
-                        <th>Not Applicable<br><small>(NA)</small></th>
-                        <th style="width:10%">Documents</th>
+                        <th style="width:30%; vertical-align: middle;" class="fw-bold">Checklist Item</th>
+                        <th style="width:18%; vertical-align: top;">
+                            <div class="fw-bold">Available</div>
+                            <div class="small text-start mt-1">
+                                <div>5 – Available and very adequate</div>
+                                <div>4 – Available and adequate</div>
+                                <div>3 – Available and fairly adequate</div>
+                            </div>
+                        </th>
+                        <th style="width:18%; vertical-align: top;">
+                            <div class="fw-bold">Available but Inadequate</div>
+                            <div class="small text-start mt-1">
+                                <div>2 – Available but inadequate</div>
+                                <div>1 – Available but very inadequate</div>
+                            </div>
+                        </th>
+                        <th style="width:14%; vertical-align: top;">
+                            <div class="fw-bold">Not Available</div>
+                            <div class="small mt-1">0 – No supporting document</div>
+                        </th>
+                        <th style="width:14%; vertical-align: top;">
+                            <div class="fw-bold">Not Applicable</div>
+                            <div class="small mt-1">N/A - Excluded from computation</div>
+                        </th>
+                        <th style="width:10%; vertical-align: middle;" class="fw-bold">Documents</th>
                     </tr>
                 </thead>
-
                 <tbody>
                 @foreach($parameters as $parameter)
                     <tr class="table-secondary fw-semibold">
@@ -112,7 +133,7 @@
 
                     @foreach($parameter->sub_parameters as $sub)
                     <tr>
-                        <td>{{ $sub->sub_parameter_name }}</td>
+                        <td style="padding-left: 30px">{{ $sub->sub_parameter_name }}</td>
 
                         <td class="text-center">
                             <select class="form-select form-select-sm"
@@ -154,16 +175,20 @@
                         </td>
 
                         <td class="text-center">
-                            <a href="{{ route('subparam.uploads.index', [
-                                'subParameter'   => $sub->id,
-                                'infoId'         => $infoId,
-                                'levelId'        => $levelId,
-                                'programId'      => $programId,
-                                'programAreaId'  => $programAreaId,
-                            ]) }}"
-                               class="btn btn-sm btn-outline-primary">
-                                <i class="bx bxs-file-pdf"></i>
-                            </a>
+                            @if($sub->uploads->count() > 0)
+                                <a href="{{ route('subparam.uploads.index', [
+                                    'subParameter'   => $sub->id,
+                                    'infoId'         => $infoId,
+                                    'levelId'        => $levelId,
+                                    'programId'      => $programId,
+                                    'programAreaId'  => $programAreaId,
+                                ]) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bx bxs-file-pdf"></i>
+                                    <span>{{ $sub->uploads->count() }}</span>
+                                </a>
+                            @else
+                                <span class="text-muted small">No available document</span>
+                            @endif
                         </td>
                     </tr>
                     @endforeach
@@ -242,18 +267,31 @@ document.addEventListener('alpine:init', () => {
         programAreaId: {{ $programAreaId }},
         storageKey: 'area-eval-{{ auth()->id() }}-{{ $programAreaId }}-{{ $levelId }}-{{ $programId }}',
 
-        evaluations: {},
+        evaluations: @json($currentUserEvaluation ? collect($currentUserEvaluation->subparameterRatings)->keyBy('subparameter_id')->map(fn($r) => [
+            'status' => $r->ratingOption->label === 'Available' ? 'available' :
+                       ($r->ratingOption->label === 'Available but Inadequate' ? 'inadequate' :
+                       ($r->ratingOption->label === 'Not Available' ? 'not_available' : 'not_applicable')),
+            'score'  => $r->score
+        ]) : []),
         totals: { available: 0, inadequate: 0, not_available: 0, not_applicable: 0 },
         mean: '0.00',
-        recommendation: '',
+        recommendation: @json($currentUserEvaluation?->areaRecommendations?->first()?->recommendation ?? ''),
 
         init() {
-            if (this.locked) return
+            // Check localStorage first
             const saved = localStorage.getItem(this.storageKey)
             if (saved) {
                 const data = JSON.parse(saved)
-                this.evaluations = data.evaluations ?? {}
-                this.recommendation = data.recommendation ?? ''
+                this.evaluations = data.evaluations ?? this.evaluations
+                this.recommendation = data.recommendation ?? this.recommendation
+
+                // Unlock if there is unsaved data
+                if (Object.keys(this.evaluations).length > 0 || this.recommendation) {
+                    this.locked = false
+                }
+            } else if (this.locked) {
+                // No saved data, respect server-side lock
+                this.locked = this.locked
             }
             this.compute()
         },
@@ -276,18 +314,31 @@ document.addEventListener('alpine:init', () => {
 
         select(subId, status, score) {
             if (this.locked) return
-            delete this.evaluations[subId]
 
             if (status === 'not_applicable') {
                 this.evaluations[subId] = { status, score: null }
+
             } else if (status === 'not_available') {
                 this.evaluations[subId] = { status, score: 0 }
+
             } else if (score !== '') {
                 this.evaluations[subId] = { status, score: parseInt(score) }
+
+            } else {
+                return // DO NOT delete — just ignore empty selection
             }
 
             this.compute()
             this.save()
+        },
+
+        unlockForm() {
+            this.locked = false
+            // Scroll to area evaluation card
+            this.$nextTick(() => {
+                const form = document.querySelector('.table')
+                if (form) form.scrollIntoView({ behavior: 'smooth' })
+            })
         },
 
         compute() {
@@ -368,7 +419,6 @@ document.addEventListener('alpine:init', () => {
 
             localStorage.removeItem(this.storageKey)
             window.location.href = data.redirect
-
         }
     }))
 })

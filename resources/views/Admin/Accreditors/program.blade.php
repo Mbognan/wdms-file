@@ -60,7 +60,11 @@
 
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4>
-                <span class="text-muted fw-light">Admin / Accreditation /</span> Area Details
+                <a href="{{ route('admin.accreditation.index') }}">
+                    <span class="text-muted fw-light">Accreditation</span>
+                </a>
+                /
+                 Area Details
             </h4>
         </div>
 

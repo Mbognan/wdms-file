@@ -94,7 +94,7 @@
                                     {{-- Admin only sees "Internal Assessor", else show role from assignment --}}
                                     {{ ($isAdmin && !$isTaskForce) 
                                         ? $assignment->user->user_type
-                                        : strtoupper($assignment->role->value) 
+                                        : strtoupper($assignment->role->value ?? 'INTERNAL ASSESSOR') 
                                     }}
                                 </div>
                             </div>

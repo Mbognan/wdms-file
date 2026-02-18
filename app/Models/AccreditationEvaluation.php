@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EvaluationStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\ADMIN\AccreditationInfo;
@@ -64,4 +65,8 @@ class AccreditationEvaluation extends Model
     {
         return $this->updated_at->gt($this->created_at);
     }
+
+    protected $casts = [
+        'status' => EvaluationStatus::class,
+    ];
 }

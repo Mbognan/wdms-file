@@ -6,14 +6,48 @@
     {{-- HEADER --}}
     <h4 class="fw-bold mb-1">
         {{ $area->area_name }}
+
+        {{-- Final Evaluation Badge --}}
+        @if($evaluation?->is_final)
+            <span class="badge bg-success ms-2">Final Evaluation</span>
+        @endif
     </h4>
     <p class="text-muted mb-4">Submitted Area Evaluation</p>
 
-    {{-- LOCKED NOTICE --}}
-    <div class="alert alert-success">
-        <i class="bx bx-check-circle"></i>
-        Evaluation submitted and locked.
-    </div>
+    {{-- LOCKED / DRAFT NOTICE --}}
+    @if($evaluation?->is_final)
+        <div class="alert alert-success">
+            <i class="bx bx-lock"></i>
+            This is the <strong>Final Evaluation</strong>.
+        </div>
+    @elseif(
+        auth()->user()->user_type === \App\Enums\UserType::INTERNAL_ASSESSOR &&
+        $evaluation?->evaluated_by === auth()->id()
+    )
+        <div class="alert alert-info">
+            <i class="bx bx-info-circle"></i>
+            Evaluation is saved but not finalized.
+        </div>
+    @endif
+
+    {{-- MARK AS FINAL BUTTON --}}
+    @if(
+        auth()->user()->user_type === \App\Enums\UserType::INTERNAL_ASSESSOR &&
+        $evaluation?->evaluated_by === auth()->id() &&
+        !$evaluation?->is_final
+    )
+        <form 
+            action="#" 
+            method="POST"
+            class="mb-3"
+            onsubmit="return confirm('Are you sure you want to mark this evaluation as final? This cannot be undone.')"
+        >
+            @csrf
+            <button type="submit" class="btn btn-warning">
+                Mark as Final Evaluation
+            </button>
+        </form>
+    @endif
 
     <div class="card mb-4">
         <div class="card-body">
@@ -21,13 +55,13 @@
             {{-- EVALUATION TABLE --}}
             <table class="table table-bordered table-sm align-middle">
                 <thead class="table-light">
-                <tr class="text-center">
-                    <th style="width:35%">Checklist Item</th>
-                    <th>Available</th>
-                    <th>Inadequate</th>
-                    <th>Not Available</th>
-                    <th>Not Applicable</th>
-                </tr>
+                    <tr class="text-center">
+                        <th style="width:35%">Checklist Item</th>
+                        <th>Available</th>
+                        <th>Available but Inadequate</th>
+                        <th>Not Available</th>
+                        <th>Not Applicable</th>
+                    </tr>
                 </thead>
 
                 <tbody>
@@ -35,9 +69,7 @@
 
                     {{-- PARAMETER HEADER --}}
                     <tr class="table-secondary fw-semibold">
-                        <td colspan="5">
-                            {{ $parameter->parameter_name }}
-                        </td>
+                        <td colspan="5">{{ $parameter->parameter_name }}</td>
                     </tr>
 
                     @foreach($parameter->sub_parameters as $sub)
@@ -47,7 +79,7 @@
                         @endphp
 
                         <tr>
-                            <td>{{ $sub->sub_parameter_name }}</td>
+                            <td style="padding-left: 30px">{{ $sub->sub_parameter_name }}</td>
 
                             <td class="text-center">
                                 {{ $label === 'Available' ? $rating->score : ' ' }}
@@ -72,19 +104,19 @@
 
                 {{-- TOTALS --}}
                 <tfoot class="fw-semibold">
-                <tr>
-                    <td>Total</td>
-                    <td class="text-center">{{ $totals['available'] }}</td>
-                    <td class="text-center">{{ $totals['inadequate'] }}</td>
-                    <td class="text-center">{{ $totals['not_available'] }}</td>
-                    <td class="text-center">{{ $totals['not_applicable'] }}</td>
-                </tr>
-                <tr>
-                    <td>Area Mean</td>
-                    <td colspan="4" class="text-center fs-5 fw-bold">
-                        {{ $mean }}
-                    </td>
-                </tr>
+                    <tr>
+                        <td>Total</td>
+                        <td class="text-center">{{ $totals['available'] }}</td>
+                        <td class="text-center">{{ $totals['inadequate'] }}</td>
+                        <td class="text-center">{{ $totals['not_available'] }}</td>
+                        <td class="text-center">{{ $totals['not_applicable'] }}</td>
+                    </tr>
+                    <tr>
+                        <td>Area Mean</td>
+                        <td colspan="4" class="text-center fs-5 fw-bold">
+                            {{ $mean }}
+                        </td>
+                    </tr>
                 </tfoot>
             </table>
 
@@ -106,36 +138,28 @@
                 </button>
             </div>
 
+            {{-- PREVIOUS / NEXT AREA NAVIGATION --}}
             <div class="mt-4 d-flex justify-content-between">
+                @if($prevArea)
+                    <a
+                        href="{{ route('program.areas.evaluations.summary', ['evaluation' => $evaluation->id, 'area' => $prevArea->id]) }}"
+                        class="btn btn-outline-secondary"
+                    >
+                        ← {{ $prevArea->area_name }}
+                    </a>
+                @else
+                    <span></span>
+                @endif
 
-            {{-- PREVIOUS AREA --}}
-            @if($prevArea)
-                <a
-                    href="{{ route('program.areas.evaluations.summary', [
-                        'evaluation' => $evaluation->id,
-                        'area'       => $prevArea->id
-                    ]) }}"
-                    class="btn btn-outline-secondary"
-                >
-                    ← {{ $prevArea->area_name }}
-                </a>
-            @else
-                <span></span>
-            @endif
-
-            {{-- NEXT AREA --}}
-            @if($nextArea)
-                <a
-                    href="{{ route('program.areas.evaluations.summary', [
-                        'evaluation' => $evaluation->id,
-                        'area'       => $nextArea->id
-                    ]) }}"
-                    class="btn btn-outline-primary"
-                >
-                    {{ $nextArea->area_name }} →
-                </a>
-            @endif
-        </div>
+                @if($nextArea)
+                    <a
+                        href="{{ route('program.areas.evaluations.summary', ['evaluation' => $evaluation->id, 'area' => $nextArea->id]) }}"
+                        class="btn btn-outline-primary"
+                    >
+                        {{ $nextArea->area_name }} →
+                    </a>
+                @endif
+            </div>
 
         </div>
     </div>

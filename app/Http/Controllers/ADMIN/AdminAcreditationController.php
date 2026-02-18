@@ -5,6 +5,7 @@ namespace App\Http\Controllers\ADMIN;
 use App\Enums\TaskForceRole;
 use App\Enums\VisitType;
 use App\Http\Controllers\Controller;
+use App\Models\AccreditationEvaluation;
 use App\Models\ADMIN\AccreditationAssignment;
 use App\Models\ADMIN\AccreditationBody;
 use App\Models\ADMIN\AccreditationDocuments;
@@ -1152,7 +1153,7 @@ class AdminAcreditationController extends Controller
         // ================= PARAMETERS =================
         $parameters = $programArea->parameters;
 
-        // ================= EXISTING EVALUATION =================
+        // ================= EXISTING EVALUATION (FILE-BASED) =================
         $evaluation = AreaEvaluation::with([
             'ratings.subparameter',
             'files.uploader',
@@ -1161,6 +1162,19 @@ class AdminAcreditationController extends Controller
             ->where('program_area_mapping_id', $programAreaId)
             ->latest()
             ->first();
+
+        // ================= EXISTING EVALUATION (SYSTEM-BASED) =================
+        $currentUserEvaluation = AccreditationEvaluation::where([
+            'accred_info_id' => $infoId,
+            'level_id'       => $levelId,
+            'program_id'     => $programId,
+            'area_id'        => $programAreaId,
+            'evaluated_by'   => $user->id,
+        ])
+        ->with('subparameterRatings.ratingOption')
+        ->first();
+
+        $locked = $currentUserEvaluation ? true : false;
 
         // ================= USER ROLES =================
         $isAdmin = $user?->user_type === UserType::ADMIN;
@@ -1183,7 +1197,9 @@ class AdminAcreditationController extends Controller
             'isEvaluated',
             'isLocked',
             'isAdmin',
-            'isInternalAssessor'
+            'isInternalAssessor',
+            'currentUserEvaluation',
+            'locked'
         ));
     }
 }
