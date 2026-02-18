@@ -160,6 +160,12 @@ Route::middleware('auth')->group(function () {
         '/admin/evaluations/{infoId}/{levelId}/{programId}/{programAreaId}',
         [AccreditationController::class, 'store']
     )->name('area.evaluations.store');
+
+    Route::patch(
+        '/evaluations/{evaluation}/finalize',
+        [AccreditationEvaluationController::class, 'markAsFinal']
+    )->name('evaluations.finalize');
+
     Route::post(
         '/internal/final-verdict',
         [AccreditationController::class, 'storeFinalVerdict']

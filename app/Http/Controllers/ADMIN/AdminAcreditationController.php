@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\ADMIN;
 
+use App\Enums\EvaluationStatus;
 use App\Enums\TaskForceRole;
 use App\Enums\VisitType;
 use App\Http\Controllers\Controller;
@@ -541,17 +542,20 @@ class AdminAcreditationController extends Controller
                         // Prevent duplicate user in same area
                         $alreadyAssigned = AccreditationAssignment::where([
                             'user_id' => $userId,
-                            'accred_info_id' => $request->accreditation_info_id,
-                            'level_id' => $request->level_id,
-                            'program_id' => $request->program_id,
-                            'area_id' => $request->area_id,
+                            'accred_info_id' => $context->accreditation_info_id,
+                            'level_id' => $context->level_id,
+                            'program_id' => $context->program_id,
+                            'area_id' => $programArea->id,
                         ])->exists();
 
-                        if ($alreadyAssigned) {
-                            return response()->json([
-                                'success' => false,
-                                'message' => 'This user is already assigned to this area.'
-                            ], 422);
+                        if (!$alreadyAssigned) {
+                            AccreditationAssignment::create([
+                                'user_id' => $userId,
+                                'accred_info_id' => $context->accreditation_info_id,
+                                'level_id' => $context->level_id,
+                                'program_id' => $context->program_id,
+                                'area_id' => $programArea->id,
+                            ]);
                         }
                     }
                 }
@@ -1170,9 +1174,18 @@ class AdminAcreditationController extends Controller
             'program_id'     => $programId,
             'area_id'        => $programAreaId,
             'evaluated_by'   => $user->id,
-        ])
-        ->with('subparameterRatings.ratingOption')
-        ->first();
+        ])->with('subparameterRatings.ratingOption', 'areaRecommendations')->first();
+
+        // Flag for lock warning
+        $isSubmittedOrUpdated = false;
+        if ($currentUserEvaluation) {
+            $isSubmittedOrUpdated = in_array($currentUserEvaluation->status, [
+                EvaluationStatus::SUBMITTED,
+                EvaluationStatus::UPDATED
+            ]);
+        }
+
+        $isFinal = $currentUserEvaluation?->is_final ?? false;
 
         $locked = $currentUserEvaluation ? true : false;
 
@@ -1199,7 +1212,8 @@ class AdminAcreditationController extends Controller
             'isAdmin',
             'isInternalAssessor',
             'currentUserEvaluation',
-            'locked'
+            'isSubmittedOrUpdated',
+            'isFinal'
         ));
     }
 }

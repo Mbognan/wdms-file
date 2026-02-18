@@ -47,21 +47,23 @@
     <h4 class="fw-bold mb-1">{{ $programArea->area->area_name }}</h4>
     <p class="text-muted mb-4">Program Area Evaluation</p>
 
-    {{-- LOCK WARNING --}}
-    <div 
-        x-cloak
-        class="alert alert-warning d-flex justify-content-between align-items-center"
-        x-show="locked"
-        x-transition
-    >
-        <div>
+    {{-- LOCK / FINAL WARNING --}}
+    @if($currentUserEvaluation?->is_final)
+        <div class="alert alert-success d-flex justify-content-center text-center">
             <i class="bx bx-lock"></i>
-            This area has already evaluated by you. Click ‘Edit Evaluation’ to make changes if needed.
+            You already finalized your evaluation. Editing is locked.
         </div>
-        <button class="btn btn-sm btn-warning" @click="unlockForm()">
-            <i class="bx bx-edit"></i> Edit Evaluation
-        </button>
-    </div>
+    @elseif ($isSubmittedOrUpdated)
+        <div class="alert alert-warning d-flex justify-content-between align-items-center">
+            <div>
+                <i class="bx bx-lock"></i>
+                You already evaluated this area. Click ‘Edit Evaluation’ to make changes if needed.
+            </div>
+            <button class="btn btn-sm btn-warning" @click="unlockForm()">
+                <i class="bx bx-edit"></i> Edit Evaluation
+            </button>
+        </div>
+    @endif
 
     {{-- ASSIGNED USERS --}}
     @if ($programArea->users->count() > 0)
@@ -333,7 +335,8 @@ document.addEventListener('alpine:init', () => {
         },
 
         unlockForm() {
-            this.locked = false
+            this.locked = false;
+
             // Scroll to area evaluation card
             this.$nextTick(() => {
                 const form = document.querySelector('.table')

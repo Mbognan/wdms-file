@@ -5,13 +5,27 @@
 @php
     use App\Enums\UserType;
     $user = auth()->user();
+    $isAdmin = $user->user_type === UserType::ADMIN;
+    $isIA = $user->user_type === UserType::INTERNAL_ASSESSOR;
+
+    $routeParams = [
+        'infoId' => $infoId,
+        'levelId' => $levelId,
+        'programId' => $programId,
+        'programAreaId' => $programAreaId
+    ];
+
+    // Determine back URL
+    $backUrl = $isIA
+        ? route('program.areas.evaluation', $routeParams)
+        : route('program.areas.parameters', $routeParams);
 @endphp
 
     <div class="container-xxl container-p-y">
 
         {{-- Breadcrumb --}}
         <div class="mb-3">
-            <a href="{{ url()->previous() }}" class="btn btn-sm btn-outline-secondary">
+            <a href="{{ $backUrl }}" class="btn btn-sm btn-outline-secondary">
                 ← Back
             </a>
         </div>

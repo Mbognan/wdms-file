@@ -4,6 +4,7 @@
 
 @php
     use App\Enums\UserType;
+    use App\Enums\EvaluationStatus;
     $user = auth()->user();
 
     $subHeader = match ($user->user_type) {
@@ -73,8 +74,8 @@
                                 <thead class="table-light text-center">
                                     @if (!$isAccreditor)
                                         <tr>
-                                            <th>Area</th>
-                                            <th>Assessor</th>
+                                            <th>Area/s</th>
+                                            <th>Assessor/s</th>
                                             <th>Status</th>
                                             <th>Submitted At</th>
                                             <th>Updated At</th>
@@ -82,84 +83,74 @@
                                         </tr>
                                     @else
                                         <tr>
-                                            <th>Area</th>
-                                            <th>Assessor</th>
+                                            <th>Area/s</th>
+                                            <th>Assessor/s</th>
                                             <th>Submitted At</th>
                                             <th width="120">Action</th>
                                         </tr>
                                     @endif
                                 </thead>
+                                @php
+                                    // Flatten all internal evaluations' area recommendations and group by area
+                                    $areaGroups = $internal->flatMap(function ($e) {
+                                        return $e->areaRecommendations->map(fn($rec) => [
+                                            'area' => $rec->area,
+                                            'evaluation' => $e,
+                                        ]);
+                                    })->groupBy(fn($item) => $item['area']->id);
+                                @endphp
+
                                 <tbody>
-                                    @forelse ($internal as $evaluation)
-                                        @foreach ($evaluation->areaRecommendations as $rec)
-                                            <tr>
-                                                <td>
-                                                    @php
-                                                        $areaName = strtoupper($rec->area->area_name);
+                                @forelse($areaGroups as $areaId => $items)
+                                    @php
+                                        $rowspan = $items->count();
+                                        $areaName = strtoupper($items->first()['area']->area_name);
+                                    @endphp
 
-                                                        $routeName = $isInternalAssessor
-                                                            ? 'program.areas.evaluation'
-                                                            : 'program.areas.parameters';
-                                                    @endphp
-
-                                                    <a href="{{ route($routeName, [
-                                                        'infoId'        => $first->accreditationInfo->id,
-                                                        'levelId'       => $first->level->id,
-                                                        'programId'     => $first->program->id,
-                                                        'programAreaId' => $rec->area->id,
-                                                    ]) }}"
-                                                    class="fw-semibold text-decoration-none link-primary link-underline-opacity-0 link-underline-opacity-100-hover">
+                                    @foreach($items as $index => $item)
+                                        <tr>
+                                            @if($index === 0)
+                                                <td rowspan="{{ $rowspan }}">
+                                                    <a href="{{ route($isInternalAssessor ? 'program.areas.evaluation' : 'program.areas.parameters', [
+                                                        'infoId' => $first->accreditationInfo->id,
+                                                        'levelId' => $first->level->id,
+                                                        'programId' => $first->program->id,
+                                                        'programAreaId' => $item['area']->id,
+                                                    ]) }}" class="fw-semibold text-decoration-none link-primary">
                                                         {{ $areaName }}
                                                     </a>
                                                 </td>
-                                                <td>{{ $evaluation->evaluator->name }}</td>
-                                                @if (!$isAccreditor)
-                                                    <td class="text-center">
-                                                        @if ($evaluation->is_updated)
-                                                            <span class="badge bg-warning text-dark">
-                                                                Updated
-                                                            </span>
-                                                        @else
-                                                            <span class="badge bg-success">
-                                                                Submitted
-                                                            </span>
-                                                        @endif
-                                                    </td>
-                                                    <td class="text-center">
-                                                        {{ $evaluation->created_at->format('M d, Y h:i A') }}
-                                                    </td>
+                                            @endif
+
+                                            <td>{{ $item['evaluation']->evaluator->name }}</td>
+                                            <td class="text-center">
+                                                @if ($item['evaluation']->status === EvaluationStatus::FINALIZED)
+                                                    <span class="badge bg-success">Finalized</span>
+                                                @elseif ($item['evaluation']->status === EvaluationStatus::UPDATED)
+                                                    <span class="badge bg-warning text-dark">Updated</span>
+                                                @elseif ($item['evaluation']->status === EvaluationStatus::SUBMITTED)
+                                                    <span class="badge bg-primary text-white">Submitted</span>
+                                                @else
+                                                    <span class="badge bg-secondary">—</span>
                                                 @endif
-                                                
-                                                <!-- Become the submitted at column if user is accreditor -->
-                                                <td class="text-center text-muted">
-                                                    {{ $evaluation->is_updated
-                                                        ? $evaluation->updated_at->format('M d, Y h:i A')
-                                                        : ($isAccreditor
-                                                            ? $evaluation->created_at->format('M d, Y h:i A')
-                                                            : '—')
-                                                    }}
-                                                </td>
-                                                <td class="text-center">
-                                                    <a href="{{ route(
-                                                        'program.areas.evaluations.summary',
-                                                        [$evaluation->id, $rec->area->id]
-                                                    ) }}"
-                                                       class="btn btn-sm btn-outline-primary">
-                                                        View
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    @empty
-                                        <tr>
-                                            <td colspan="4"
-                                                class="text-center text-muted">
-                                                No internal assessor evaluation yet
+                                            </td>
+                                            <td class="text-center">{{ $item['evaluation']->created_at->format('M d, Y h:i A') }}</td>
+                                            <td class="text-center">{{ $item['evaluation']->updated_at->format('M d, Y h:i A') }}</td>
+                                            <td class="text-center">
+                                                <a href="{{ route('program.areas.evaluations.summary', [$item['evaluation']->id, $item['area']->id]) }}"
+                                                class="btn btn-sm btn-outline-primary">
+                                                    View
+                                                </a>
                                             </td>
                                         </tr>
-                                    @endforelse
+                                    @endforeach
+                                @empty
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">No internal assessor evaluation yet</td>
+                                    </tr>
+                                @endforelse
                                 </tbody>
-                            </table>
+                                                            </table>
 
                             {{-- SUMMARY BUTTON (INTERNAL ONLY) --}}
                             @if ($isAdmin || $isDean || $isAccreditor)
@@ -198,9 +189,15 @@
                                                     @endif
                                                 </td>
                                                 <td class="text-center">
-                                                    <span class="badge {{ $evaluation->was_updated ? 'bg-warning text-dark' : 'bg-success' }}">
-                                                        {{ $evaluation->was_updated ? 'Updated' : 'Submitted' }}
-                                                    </span>
+                                                    @if ($evaluation->status === EvaluationStatus::FINALIZED)
+                                                        <span class="badge bg-success">Finalized</span>
+                                                    @elseif ($evaluation->status === EvaluationStatus::UPDATED)
+                                                        <span class="badge bg-warning text-dark">Updated</span>
+                                                    @elseif ($evaluation->status === EvaluationStatus::SUBMITTED)
+                                                        <span class="badge bg-primary text-white">Submitted</span>
+                                                    @else
+                                                        <span class="badge bg-secondary">—</span>
+                                                    @endif
                                                 </td>
                                                 <td class="text-center">
                                                     <a href="{{ route(

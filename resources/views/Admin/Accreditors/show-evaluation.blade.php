@@ -16,9 +16,9 @@
 
     {{-- LOCKED / DRAFT NOTICE --}}
     @if($evaluation?->is_final)
-        <div class="alert alert-success">
+        <div class="alert alert-success d-flex">
             <i class="bx bx-lock"></i>
-            This is the <strong>Final Evaluation</strong>.
+            This is the&nbsp;<strong>Final Evaluation</strong>.
         </div>
     @elseif(
         auth()->user()->user_type === \App\Enums\UserType::INTERNAL_ASSESSOR &&
@@ -36,17 +36,16 @@
         $evaluation?->evaluated_by === auth()->id() &&
         !$evaluation?->is_final
     )
-        <form 
-            action="#" 
-            method="POST"
-            class="mb-3"
-            onsubmit="return confirm('Are you sure you want to mark this evaluation as final? This cannot be undone.')"
-        >
-            @csrf
-            <button type="submit" class="btn btn-warning">
+        <div class="mb-3">
+            <button 
+                type="button" 
+                class="btn btn-warning mb-3"
+                data-bs-toggle="modal"
+                data-bs-target="#finalEvaluationModal"
+            >
                 Mark as Final Evaluation
             </button>
-        </form>
+        </div>
     @endif
 
     <div class="card mb-4">
@@ -163,6 +162,39 @@
 
         </div>
     </div>
+    <x-modal id="finalEvaluationModal" title="Confirm Final Evaluation" :backdrop="false">
+        <p>
+            Are you sure you want to mark this as 
+            <strong>Final Evaluation</strong>?
+        </p>
+
+        <p class="text-muted mb-2">
+            Once marked as <strong>Final</strong>, this evaluation will be locked 
+            and can no longer be edited.
+        </p>
+
+        <x-slot name="footer">
+            <button 
+                type="button" 
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+            >
+                Cancel
+            </button>
+
+            <form 
+                action="{{ route('evaluations.finalize', $evaluation) }}" 
+                method="POST"
+            >
+                @csrf
+                @method('PATCH')
+
+                <button type="submit" class="btn btn-warning">
+                    Yes, Mark as Final
+                </button>
+            </form>
+        </x-slot>
+    </x-modal>
 </div>
 
 <style>

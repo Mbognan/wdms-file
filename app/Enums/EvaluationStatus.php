@@ -7,5 +7,5 @@ enum EvaluationStatus: string
     case PENDING = 'pending';
     case SUBMITTED = 'submitted';
     case UPDATED = 'updated';
-    case FINALIZED = 'sinalized';
+    case FINALIZED = 'finalized';
 }
