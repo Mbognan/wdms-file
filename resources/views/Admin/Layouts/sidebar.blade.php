@@ -1,22 +1,25 @@
 @php
     use App\Enums\UserType;
+    use App\Enums\UserStatus;
 
     $user = auth()->user();
+    $currentRole = $user->currentRole->name;
+    $isActive = $user->status === UserStatus::ACTIVE->value;
 
     // Define sidebar color class based on user type
-    $sidebarClass = match ($user->user_type) {
-        UserType::ADMIN => 'sidebar-admin',
-        UserType::DEAN => 'sidebar-dean',
-        UserType::TASK_FORCE => 'sidebar-taskforce',
-        UserType::INTERNAL_ASSESSOR => 'sidebar-internal',
-        UserType::ACCREDITOR => 'sidebar-accreditor',
+    $sidebarClass = match ($user->currentRole->name) {
+        UserType::ADMIN->value => 'sidebar-admin',
+        UserType::DEAN->value => 'sidebar-dean',
+        UserType::TASK_FORCE->value => 'sidebar-taskforce',
+        UserType::INTERNAL_ASSESSOR->value => 'sidebar-internal',
+        UserType::ACCREDITOR->value => 'sidebar-accreditor',
         default => 'sidebar-default',
     };
 @endphp
 
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme {{ $sidebarClass }}">
     <div class="app-brand demo">
-        <a href="#" class="app-brand-link">
+        <a href={{ route('dashboard') }} class="app-brand-link">
             <span class="app-brand-logo demo">
                 <img src="{{ asset('assets/img/wdms/pit-logo-outlined.png') }}"
                      alt="Pit Logo"
@@ -36,13 +39,19 @@
     <ul class="menu-inner py-1">
 
         {{-- ================= ADMIN ================= --}}
-        @if ($user->user_type === UserType::ADMIN)
+        @if ($isActive && $currentRole === UserType::ADMIN->value)
+            <li class="menu-item {{ Route::is('dashboard') ? 'active' : '' }}">
+                <a href="{{ route('dashboard') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-collection"></i>
+                    <div>Dashboard</div>
+                </a>
+            </li>
 
             <li class="menu-item {{ Route::is('users.*') ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons bx bx-user-check"></i>
                     <div>Internal Assessors & Accreditors</div>
-                    @if ($unverifiedCount > 0)
+                    @if ($unverifiedCount > 0 || $pendingRoleRequestCount > 0)
                         <span class="badge bg-warning rounded-pill ms-auto">
                             !
                         </span>
@@ -52,7 +61,7 @@
                 <ul class="menu-sub">
                     <li class="menu-item {{ Route::is('users.index') ? 'active' : '' }}">
                         <a href="{{ route('users.index') }}" class="menu-link">
-                            <div>Unverified</div>
+                            <div>Pending Accounts</div>
                             @if ($unverifiedCount > 0)
                                 <span class="badge bg-warning rounded-pill ms-auto">
                                     {{ $unverifiedCount }}
@@ -63,7 +72,18 @@
 
                     <li class="menu-item {{ Route::is('users.taskforce.index') ? 'active' : '' }}">
                         <a href="{{ route('users.taskforce.index') }}" class="menu-link">
-                            <div>Verified</div>
+                            <div>Active Accounts</div>
+                        </a>
+                    </li>
+
+                    <li class="menu-item {{ Route::is('role-requests.*') ? 'active' : '' }}">
+                        <a href="{{ route('role-requests.index') }}" class="menu-link">
+                            <div>Role Requests</div>
+                            @if ($pendingRoleRequestCount > 0)
+                                <span class="badge bg-warning rounded-pill ms-auto">
+                                    {{ $pendingRoleRequestCount }}
+                                </span>
+                            @endif
                         </a>
                     </li>
                 </ul>
@@ -90,13 +110,21 @@
                 </a>
             </li>
 
-        @elseif ($user->user_type === UserType::DEAN && $user->status === 'Active')
+        {{-- ================= DEAN ================= --}}
+        @elseif ($isActive && $currentRole === UserType::DEAN->value)
+
+            <li class="menu-item {{ Route::is('dashboard') ? 'active' : '' }}">
+                <a href="{{ route('dashboard') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-collection"></i>
+                    <div>Dashboard</div>
+                </a>
+            </li>
 
             <li class="menu-item {{ Route::is('users.*') ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons bx bx-user-check"></i>
                     <div>Task Forces</div>
-                    @if ($unverifiedCount > 0)
+                    @if ($unverifiedCount > 0 || $pendingRoleRequestCount > 0)
                         <span class="badge bg-warning rounded-pill ms-auto">
                             !
                         </span>
@@ -120,6 +148,17 @@
                             <div>Verified</div>
                         </a>
                     </li>
+
+                    <li class="menu-item {{ Route::is('role-requests.*') ? 'active' : '' }}">
+                        <a href="{{ route('role-requests.index') }}" class="menu-link">
+                            <div>Role Requests</div>
+                            @if ($pendingRoleRequestCount > 0)
+                                <span class="badge bg-warning rounded-pill ms-auto">
+                                    {{ $pendingRoleRequestCount }}
+                                </span>
+                            @endif
+                        </a>
+                    </li>
                 </ul>
             </li>
 
@@ -137,8 +176,8 @@
                 </a>
             </li>
 
-        {{-- ================= TASK FORCE (ACTIVE) ================= --}}
-        @elseif ($user->user_type === UserType::TASK_FORCE && $user->status === 'Active')
+        {{-- ================= TASK FORCE ================= --}}
+        @elseif ($isActive && $currentRole === UserType::TASK_FORCE->value)
 
             <li class="menu-item {{ Route::is('dashboard') ? 'active' : '' }}">
                 <a href="{{ route('dashboard') }}" class="menu-link">
@@ -162,7 +201,7 @@
             </li>
 
         {{-- ================= NOT ACTIVE ================= --}}
-        @elseif ($user->status !== 'Active')
+        @elseif (!$isActive)
 
             <li class="menu-item disabled">
                 <span class="menu-link text-muted">
@@ -189,7 +228,14 @@
             </li>
 
         {{-- ================= INTERNAL ASSESSOR ================= --}}
-        @elseif ($user->user_type === UserType::INTERNAL_ASSESSOR)
+        @elseif ($isActive && $currentRole === UserType::INTERNAL_ASSESSOR->value)
+
+            <li class="menu-item {{ Route::is('dashboard') ? 'active' : '' }}">
+                <a href="{{ route('dashboard') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-collection"></i>
+                    <div>Dashboard</div>
+                </a>
+            </li>
 
             <li class="menu-item {{ Route::is('internal-accessor.*') ? 'active' : '' }}">
                 <a href="{{ route('internal-accessor.index') }}" class="menu-link">
@@ -205,7 +251,14 @@
             </li>
 
         {{-- ================= ACCREDITOR ================= --}}
-        @elseif ($user->user_type === UserType::ACCREDITOR)
+        @elseif ($isActive && $currentRole === UserType::ACCREDITOR->value)
+
+            <li class="menu-item {{ Route::is('dashboard') ? 'active' : '' }}">
+                <a href="{{ route('dashboard') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-collection"></i>
+                    <div>Dashboard</div>
+                </a>
+            </li>
 
             <li class="menu-item {{ Route::is('internal-accessor.*') ? 'active' : '' }}">
                 <a href="{{ route('internal-accessor.index') }}" class="menu-link">

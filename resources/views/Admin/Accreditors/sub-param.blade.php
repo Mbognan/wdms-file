@@ -5,8 +5,8 @@
 @php
     use App\Enums\UserType;
     $user = auth()->user();
-    $isAdmin = $user->user_type === UserType::ADMIN;
-    $isIA = $user->user_type === UserType::INTERNAL_ASSESSOR;
+    $isAdmin = $user->currentRole->name === UserType::ADMIN->value;
+    $isIA = $user->currentRole->name === UserType::INTERNAL_ASSESSOR->value;
 
     $routeParams = [
         'infoId' => $infoId,
@@ -40,8 +40,8 @@
         
         {{-- Upload Card --}}
         <div class="card mb-4">
-            @if ($user->user_type === UserType::DEAN 
-                    || $user->user_type === UserType::TASK_FORCE
+            @if ($user->currentRole->name === UserType::DEAN->value
+                    || $user->currentRole->name === UserType::TASK_FORCE->value
                 )
                 <div class="card-body">
                     <form

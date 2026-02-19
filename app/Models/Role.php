@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Str;
 
-class Roles extends Model
+class Role extends Model
 {
     protected $fillable = [
         'name',
@@ -20,7 +20,7 @@ class Roles extends Model
 
     public function users()
     {
-        return $this->belongsToMany(User::class);
+        return $this->belongsToMany(User::class, 'role_user_pivot', 'role_id', 'user_id');
     }
 
     /*

@@ -2,24 +2,27 @@
 
 use App\Http\Controllers\ADMIN\AccreditationProgramController;
 use App\Http\Controllers\ADMIN\AccreditationController;
-use App\Http\Controllers\ADMIN\ACREDITATIONCONTROLLER;
+use App\Http\Controllers\RoleRequestController;
 use App\Http\Controllers\ADMIN\AdminAcreditationController;
 use App\Http\Controllers\ADMIN\AdminTaskForceController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\ArchiveController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AccreditationEvaluationController;
+use App\Http\Controllers\SwitchRoleController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::get('/dashboard', function () {
-    return view('admin.dashboard.index');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+});
 
 Route::middleware('auth')->group(function () {
+    Route::get('/profile/details', [ProfileController::class, 'index'])->name('profile.index');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -172,7 +175,7 @@ Route::middleware('auth')->group(function () {
     )->name('internal.final.verdict.store');
 
     // FINAL VERDICT
-    Route::get('/', [ArchiveController::class, 'index'])
+    Route::get('/archive', [ArchiveController::class, 'index'])
         ->name('archive.index');
 
     // Completed accreditations
@@ -182,6 +185,36 @@ Route::middleware('auth')->group(function () {
     // 🗑 Deleted / Withdrawn accreditations
     Route::get('/deleted', [ArchiveController::class, 'deleted'])
         ->name('archive.deleted');
+});
+
+// Route for role requests
+Route::middleware(['auth'])->group(function () {
+
+    // View pending requests (for approvers)
+    Route::get('/role-requests', [RoleRequestController::class, 'index'])
+        ->name('role-requests.index');
+
+    // Submit a new role request (by logged-in user)
+    Route::post('/role-requests', [RoleRequestController::class, 'store'])
+        ->name('role-requests.store');
+    
+    // Data used for AJAX
+    Route::get('/data', [RoleRequestController::class, 'data'])->name('role-requests.data');
+
+    // Approve a request (for approvers)
+    Route::post('/role-requests/{roleRequest}/approve', [RoleRequestController::class, 'approve'])
+        ->name('role-requests.approve');
+
+    // Reject a request (for approvers)
+    Route::post('/role-requests/{roleRequest}/reject', [RoleRequestController::class, 'reject'])
+        ->name('role-requests.reject');
+});
+
+// Route for switching role
+Route::middleware(['auth'])->group(function () {
+    Route::post('/switch-role', [SwitchRoleController::class, 'switch'])
+    ->name('switch.role')
+    ->middleware('auth');
 });
 
 require __DIR__ . '/auth.php';

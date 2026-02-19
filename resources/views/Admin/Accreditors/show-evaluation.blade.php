@@ -21,7 +21,7 @@
             This is the&nbsp;<strong>Final Evaluation</strong>.
         </div>
     @elseif(
-        auth()->user()->user_type === \App\Enums\UserType::INTERNAL_ASSESSOR &&
+        auth()->user()->currentRole->name === \App\Enums\UserType::INTERNAL_ASSESSOR->value &&
         $evaluation?->evaluated_by === auth()->id()
     )
         <div class="alert alert-info">
@@ -32,7 +32,7 @@
 
     {{-- MARK AS FINAL BUTTON --}}
     @if(
-        auth()->user()->user_type === \App\Enums\UserType::INTERNAL_ASSESSOR &&
+        auth()->user()->currentRole->name === \App\Enums\UserType::INTERNAL_ASSESSOR->value &&
         $evaluation?->evaluated_by === auth()->id() &&
         !$evaluation?->is_final
     )

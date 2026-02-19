@@ -7,16 +7,16 @@
     use App\Enums\EvaluationStatus;
     $user = auth()->user();
 
-    $subHeader = match ($user->user_type) {
-        UserType::TASK_FORCE =>
+    $subHeader = match ($user->currentRole->name) {
+        UserType::TASK_FORCE->value =>
             "Evaluation of Internal Assessor for areas you're assigned to",
 
-        UserType::INTERNAL_ASSESSOR => 
+        UserType::INTERNAL_ASSESSOR->value => 
             "Evaluation you've made",
 
-        UserType::DEAN,
-        UserType::ADMIN,
-        UserType::ACCREDITOR =>
+        UserType::DEAN->value,
+        UserType::ADMIN->value,
+        UserType::ACCREDITOR->value =>
             'Evaluations of Internal Assessor',
 
         default => '',

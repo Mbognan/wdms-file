@@ -23,11 +23,11 @@ class AccreditationEvaluationController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $isAdmin = $user->user_type === UserType::ADMIN;
-        $isDean = $user->user_type === UserType::DEAN;
-        $isTaskForce = $user->user_type === UserType::TASK_FORCE;
-        $isInternalAssessor = $user->user_type === UserType::INTERNAL_ASSESSOR;
-        $isAccreditor = $user->user_type === UserType::ACCREDITOR;
+        $isAdmin = $user->currentRole->name === UserType::ADMIN->value;
+        $isDean = $user->currentRole->name === UserType::DEAN->value;
+        $isTaskForce = $user->currentRole->name === UserType::TASK_FORCE->value;
+        $isInternalAssessor = $user->currentRole->name === UserType::INTERNAL_ASSESSOR->value;
+        $isAccreditor = $user->currentRole->name === UserType::ACCREDITOR->value;
 
         $query = AccreditationEvaluation::with([
             'accreditationInfo',
@@ -46,7 +46,7 @@ class AccreditationEvaluationController extends Controller
         // ===============================
 
         // TASK FORCE → only evaluations for assigned areas (all statuses)
-        if ($user->user_type === UserType::TASK_FORCE) {
+        if ($user->currentRole->name === UserType::TASK_FORCE->value) {
             $query->whereHas('areaRecommendations', function ($q) use ($user) {
                 $q->whereHas('area', function ($areaQ) use ($user) {
                     $areaQ->whereIn('id', function ($sub) use ($user) {
@@ -59,12 +59,16 @@ class AccreditationEvaluationController extends Controller
         }
 
         // INTERNAL ASSESSOR → only evaluations they made (all statuses)
-        if ($user->user_type === UserType::INTERNAL_ASSESSOR) {
+        if ($user->currentRole->name === UserType::INTERNAL_ASSESSOR->value) {
             $query->where('evaluated_by', $user->id);
         }
 
         // ACCREDITOR / ADMIN / DEAN → only finalized internal assessor evaluations
-        if (in_array($user->user_type, [UserType::ACCREDITOR, UserType::ADMIN, UserType::DEAN])) {
+        if (in_array($user->currentRole->name, [
+            UserType::ACCREDITOR->value, 
+            UserType::ADMIN->value, 
+            UserType::DEAN->value
+        ])) {
             $query->where('status', EvaluationStatus::FINALIZED)
                 ->whereHas('evaluator', function ($q) {
                     $q->where('user_type', UserType::INTERNAL_ASSESSOR);
@@ -97,7 +101,11 @@ class AccreditationEvaluationController extends Controller
                 foreach ($filteredEvaluations as $evaluation) {
 
                     // Skip non-finalized for Admin/Dean/Accreditor
-                    if (in_array($user->user_type, [UserType::ACCREDITOR, UserType::ADMIN, UserType::DEAN]) &&
+                    if (in_array($user->currentRole->name, [
+                        UserType::ACCREDITOR->value, 
+                        UserType::ADMIN->value, 
+                        UserType::DEAN->value
+                    ]) &&
                         $evaluation->status !== EvaluationStatus::FINALIZED) {
                         continue;
                     }
@@ -267,10 +275,11 @@ class AccreditationEvaluationController extends Controller
         $areaId = $programArea->area_id;
 
         $user = auth()->user();
-        $isAccreditor = $user->user_type === UserType::ACCREDITOR;
+        $isIA = $user->currentRole->name === UserType::INTERNAL_ASSESSOR->value;
+        $isAccreditor = $user->currentRole->name === UserType::ACCREDITOR->value;
 
         // INTERNAL ASSESSOR → only one per area
-        if ($user->user_type === UserType::INTERNAL_ASSESSOR) {
+        if ($isIA) {
 
             $alreadyEvaluated = AccreditationEvaluation::query()
                 ->where('accred_info_id', $validated['accred_info_id'])
@@ -375,7 +384,7 @@ class AccreditationEvaluationController extends Controller
         // ACCESS CONTROL
         // Admin, Dean, Accreditor can view all the evaluations
         // Internal assessor can only view the own evaluation they made
-        if ($user->user_type === UserType::ACCREDITOR) {
+        if ($user->currentRole->name === UserType::ACCREDITOR->value) {
 
             $isOwnEvaluation = $evaluation->evaluated_by === $user->id;
 
@@ -388,7 +397,7 @@ class AccreditationEvaluationController extends Controller
         }
 
         // Task Force can only view evaluation under the area they are assigned
-        if ($user->user_type === UserType::TASK_FORCE) {
+        if ($user->currentRole->name === UserType::TASK_FORCE->value) {
             $assigned = AccreditationAssignment::where('user_id', $user->id)
                 ->where('area_id', $area->id)
                 ->exists();
@@ -551,7 +560,7 @@ class AccreditationEvaluationController extends Controller
 
         // Only internal assessor who created it can finalize
         if (
-            $user->user_type !== UserType::INTERNAL_ASSESSOR ||
+            $user->currentRole->name !== UserType::INTERNAL_ASSESSOR->value ||
             $evaluation->evaluated_by !== $user->id
         ) {
             abort(403, 'You are not allowed to finalize this evaluation.');

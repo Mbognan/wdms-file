@@ -341,8 +341,8 @@ class AdminAcreditationController extends Controller
     {
         $user = auth()->user();
 
-        $isAdmin = $user->user_type === UserType::ADMIN;
-        $isDean  = $user->user_type === UserType::DEAN;
+        $isAdmin = $user->currentRole->name === UserType::ADMIN->value;
+        $isDean  = $user->currentRole->name === UserType::DEAN ->value;
 
         $levelName = AccreditationLevel::where('id', $levelId)->value('level_name');
 
@@ -725,11 +725,11 @@ class AdminAcreditationController extends Controller
     ) {
         $user = auth()->user();
 
-        $isAdmin = $user->user_type === UserType::ADMIN;
-        $isDean  = $user->user_type === UserType::DEAN;
-        $isTaskForce = $user->user_type === UserType::TASK_FORCE;
-        $isInternalAssessor = $user->user_type === UserType::INTERNAL_ASSESSOR;
-        $isAccreditor = $user->user_type === UserType::ACCREDITOR;
+        $isAdmin = $user->currentRole->name === UserType::ADMIN->value;
+        $isDean  = $user->currentRole->name === UserType::DEAN->value;
+        $isTaskForce = $user->currentRole->name === UserType::TASK_FORCE->value;
+        $isInternalAssessor = $user->currentRole->name === UserType::INTERNAL_ASSESSOR->value;
+        $isAccreditor = $user->currentRole->name === UserType::ACCREDITOR->value;
 
         $context = InfoLevelProgramMapping::where([
             'accreditation_info_id' => $infoId,
@@ -755,15 +755,15 @@ class AdminAcreditationController extends Controller
         // FILTER ASSIGNMENTS BASED ON LOGGED-IN USER
         if ($isAdmin) {
             $assignments = $assignments->filter(fn ($a) =>
-                in_array($a->user->user_type, [UserType::INTERNAL_ASSESSOR, UserType::ACCREDITOR])
+                in_array($a->user->currentRole->name, [UserType::INTERNAL_ASSESSOR->value, UserType::ACCREDITOR->value])
             );
         } elseif ($isInternalAssessor) {
             $assignments = $assignments->filter(fn ($a) =>
-                $a->user->user_type === UserType::INTERNAL_ASSESSOR
+                $a->user->currentRole->name === UserType::INTERNAL_ASSESSOR->value
             );
         } elseif ($isDean || $isTaskForce || $isInternalAssessor) {
             $assignments = $assignments->filter(fn ($a) =>
-                $a->user->user_type === UserType::TASK_FORCE
+                $a->user->currentRole->name === UserType::TASK_FORCE->value
             );
 
             // SORT TASK FORCE: Chair first, then Member
@@ -931,9 +931,9 @@ class AdminAcreditationController extends Controller
         /**
          * USER ROLES
          */
-        $isAdmin = $user?->user_type === UserType::ADMIN;
-        $isInternalAssessor = $user?->user_type === UserType::INTERNAL_ASSESSOR;
-        $isAccreditor = $user?->user_type === UserType::ACCREDITOR;
+        $isAdmin = $user->currentRole === UserType::ADMIN->value;
+        $isInternalAssessor = $user->currentRole === UserType::INTERNAL_ASSESSOR->value;
+        $isAccreditor = $user->currentRole === UserType::ACCREDITOR->value;
 
         /**
          * UI FLAGS
@@ -1031,10 +1031,10 @@ class AdminAcreditationController extends Controller
     ) {
         $user = auth()->user();
 
-        $isAdmin = $user->user_type === UserType::ADMIN;
-        $isDean = $user->user_type === UserType::DEAN;
-        $isInternalAssessor = $user->user_type === UserType::INTERNAL_ASSESSOR;
-        $isTaskForce = $user->user_type === UserType::TASK_FORCE;
+        $isAdmin = $user->currentRole->name === UserType::ADMIN->value;
+        $isDean = $user->currentRole->name === UserType::DEAN->value;
+        $isInternalAssessor = $user->currentRole->name === UserType::INTERNAL_ASSESSOR->value;
+        $isTaskForce = $user->currentRole->name === UserType::TASK_FORCE->value;
 
         // ================= PROGRAM =================
         $program = Program::findOrFail($programId);
@@ -1119,7 +1119,7 @@ class AdminAcreditationController extends Controller
         ])->firstOrFail();
 
         // ================= ACCESS CONTROL =================
-        if ($user->user_type === UserType::INTERNAL_ASSESSOR) {
+        if ($user->currentRole->name === UserType::INTERNAL_ASSESSOR->value) {
 
             $isAssigned = ProgramAreaMapping::where('id', $programAreaId)
             ->where('info_level_program_mapping_id', $context->id)
@@ -1190,8 +1190,8 @@ class AdminAcreditationController extends Controller
         $locked = $currentUserEvaluation ? true : false;
 
         // ================= USER ROLES =================
-        $isAdmin = $user?->user_type === UserType::ADMIN;
-        $isInternalAssessor = $user?->user_type === UserType::INTERNAL_ASSESSOR;
+        $isAdmin = $user->currentRole->name === UserType::ADMIN->value;
+        $isInternalAssessor = $user?->currentRole->name === UserType::INTERNAL_ASSESSOR->value;
 
         // ================= STATE FLAGS =================
         $isEvaluated = !is_null($evaluation);
