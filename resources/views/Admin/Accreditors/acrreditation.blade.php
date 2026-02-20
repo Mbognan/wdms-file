@@ -16,6 +16,9 @@
 .program-card .card-icon-bg { position: absolute; right: -20px; bottom: -20px; font-size: 120px; opacity: 0.12; color: #ffffff; pointer-events: none; }
 .program-card .program-header { position: relative; z-index: 2; padding: 18px 12px; font-weight: 600; font-size: 1rem; }
 .program-card .status-badge { margin-top: 10px; }
+/* Clickable accreditation row */
+.accred-row { cursor: pointer; transition: background-color 0.2s ease; }
+.accred-row:hover { background-color: #f0f0f0; /* Slightly darker on hover */ }
 </style>
 
 <div class="container-xxl container-p-y">
@@ -31,8 +34,6 @@
     </div>
 
     <div class="card">
-        <h5 class="card-header">Accreditations</h5>
-
         <div class="table-responsive text-nowrap">
             <table id="accreditationTable" class="table">
                 <thead>
@@ -312,7 +313,7 @@ form.addEventListener('submit', function(e) {
 /* ================= DATATABLE ROWS ================= */
 function accreditationRow(info) {
     return `
-        <tr class="accred-row" data-id="${info.id}">
+        <tr class="accred-row" data-id="${info.id}" data-href="/admin/accreditations/${info.id}">
             <td>
                 <i class="bx bx-certification bx-sm text-primary me-3"></i>
                 <span class="fw-medium">${info.title}</span>
@@ -333,9 +334,7 @@ function accreditationRow(info) {
                         <a class="dropdown-item" href="/admin/accreditations/${info.id}"><i class="bx bx-detail me-1"></i> View Details </a>
                         <a class="dropdown-item expand-programs" href="#"><i class="bx bx-collection me-1"></i> View Level & Programs</a>
 
-                        <!-- Add Level / Program -->
                         ${isAdmin ? `
-                        <!-- Add Level / Program (only for admins) -->
                         <a class="dropdown-item add-level-program" href="#"
                         data-bs-toggle="modal" data-bs-target="#addLevelProgramModal"
                         data-info-id="${info.id}">
@@ -346,7 +345,7 @@ function accreditationRow(info) {
                         data-id="${info.id}">
                             <i class="bx bx-edit me-1"></i> Edit Accreditation Info
                         </a>
-        ` : ''}
+                        ` : ''}
                     </div>
                 </div>
             </td>
@@ -381,50 +380,50 @@ function programChildRow(info) {
     Object.keys(grouped).forEach((level, idx) => {
         html += `
 
-<div class="card accordion-item border-0 mb-2">
-    <!-- LEVEL HEADER -->
-    <h2 class="accordion-header" id="heading-${info.id}-${idx}">
-        <button type="button"
-                class="accordion-button collapsed"
-                data-bs-toggle="collapse"
-                data-bs-target="#collapse-${info.id}-${idx}"
-                aria-expanded="false">
+        <div class="card accordion-item border-0 mb-2">
+            <!-- LEVEL HEADER -->
+            <h2 class="accordion-header" id="heading-${info.id}-${idx}">
+                <button type="button"
+                        class="accordion-button collapsed"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#collapse-${info.id}-${idx}"
+                        aria-expanded="false">
 
-            <div class="d-flex justify-content-between align-items-center w-100 pe-3">
-                <span class="fw-semibold">
-                    ${level}
-                </span>
+                    <div class="d-flex justify-content-between align-items-center w-100 pe-3">
+                        <span class="fw-semibold">
+                            ${level}
+                        </span>
 
-                <span class="badge bg-label-primary">
-                    ${grouped[level].length}
-                </span>
+                        <span class="badge bg-label-primary">
+                            ${grouped[level].length}
+                        </span>
+                    </div>
+
+                </button>
+            </h2>
+
+            <!-- PROGRAMS LIST INSIDE (UNCHANGED) -->
+            <div id="collapse-${info.id}-${idx}" class="accordion-collapse collapse" data-bs-parent="#accordion-${info.id}">
+                <div class="accordion-body pt-0">
+
+                    <hr class="my-2">
+
+                    <div class="list-group list-group-flush ps-4">
+                `;
+
+                grouped[level].forEach(p => {
+                html += `
+                    <a href="/admin/accreditations/${info.id}/level/${p.level_id}/program/${encodeURIComponent(p.name)}"
+                    class="list-group-item list-group-item-action py-2">
+                        ${p.name}
+                    </a>`;
+                });
+
+                html += `
+                    </div>
+                </div>
             </div>
-
-        </button>
-    </h2>
-
-    <!-- PROGRAMS LIST INSIDE (UNCHANGED) -->
-    <div id="collapse-${info.id}-${idx}" class="accordion-collapse collapse" data-bs-parent="#accordion-${info.id}">
-        <div class="accordion-body pt-0">
-
-            <hr class="my-2">
-
-            <div class="list-group list-group-flush ps-4">
-        `;
-
-        grouped[level].forEach(p => {
-        html += `
-            <a href="/admin/accreditations/${info.id}/level/${p.level_id}/program/${encodeURIComponent(p.name)}"
-            class="list-group-item list-group-item-action py-2">
-                ${p.name}
-            </a>`;
-        });
-
-        html += `
-            </div>
-        </div>
-    </div>
-</div>`;
+        </div>`;
     });
 
     html += `
@@ -586,6 +585,17 @@ $('#editAccreditationForm').on('submit', function (e) {
             showToast('Failed to update accreditation.', 'error');
         }
     });
+});
+
+// Make accreditation row clickable
+$(document).on('click', '.accred-row', function(e) {
+    // Prevent navigating if user clicked inside dropdown or button
+    if ($(e.target).closest('.dropdown, .dropdown-toggle, .dropdown-menu, button, a').length) return;
+
+    const href = $(this).data('href');
+    if (href) {
+        window.location.href = href;
+    }
 });
 
 

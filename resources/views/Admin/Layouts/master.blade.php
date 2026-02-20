@@ -62,7 +62,6 @@
         <div class="layout-page">
 
             @include('admin.layouts.sidebar')
-
             <!-- Navbar -->
              <nav class="layout-navbar container-xxl navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme"
                     id="layout-navbar">
@@ -90,17 +89,17 @@
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <!-- User Info -->
                                     <li>
-                                        <a class="dropdown-item" href="#">
+                                        <div class="dropdown-item">
                                             <div class="d-flex">
                                                 <div class="flex-shrink-0 me-3">
-
+                                                    <img src="{{ asset('assets/img/avatars/1.png') }}" alt class="w-px-40 h-auto rounded-circle" />
                                                 </div>
                                                 <div class="flex-grow-1">
                                                     <span class="fw-medium d-block">{{ auth()->user()->name }}</span>
-                                                    <small class="text-muted">{{ auth()->user()->user_type }}</small>
+                                                    <small class="text-muted">{{ auth()->user()->currentRole->name }}</small>
                                                 </div>
                                             </div>
-                                        </a>
+                                        </div>
                                     </li>
 
                                     <li>
@@ -109,12 +108,29 @@
 
                                     <!-- My Profile -->
                                     <li>
-                                        <a class="dropdown-item" href="#">
+                                        <a class="dropdown-item" href="{{ route('profile.index') }}">
                                             <i class="bx bx-user me-2"></i>
                                             <span class="align-middle">My Profile</span>
                                         </a>
                                     </li>
 
+                                    @if($switchableRoles->count() > 0)
+                                        <li><div class="dropdown-divider"></div></li>
+                                        <li class="dropdown-header text-muted">Switch Role</li>
+                                        
+                                        @foreach($switchableRoles as $role)
+                                            <li>
+                                                <form method="POST" action="{{ route('switch.role') }}">
+                                                    @csrf
+                                                    <input type="hidden" name="role_id" value="{{ $role->id }}">
+                                                    <button type="submit" class="dropdown-item">
+                                                        <i class="bx bx-refresh me-2"></i>
+                                                        Switch to {{ $role->name }}
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        @endforeach
+                                    @endif
                                     <li>
                                         <div class="dropdown-divider"></div>
                                     </li>

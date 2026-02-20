@@ -5,13 +5,27 @@
 @php
     use App\Enums\UserType;
     $user = auth()->user();
+    $isAdmin = $user->currentRole->name === UserType::ADMIN->value;
+    $isIA = $user->currentRole->name === UserType::INTERNAL_ASSESSOR->value;
+
+    $routeParams = [
+        'infoId' => $infoId,
+        'levelId' => $levelId,
+        'programId' => $programId,
+        'programAreaId' => $programAreaId
+    ];
+
+    // Determine back URL
+    $backUrl = $isIA
+        ? route('program.areas.evaluation', $routeParams)
+        : route('program.areas.parameters', $routeParams);
 @endphp
 
     <div class="container-xxl container-p-y">
 
         {{-- Breadcrumb --}}
         <div class="mb-3">
-            <a href="{{ url()->previous() }}" class="btn btn-sm btn-outline-secondary">
+            <a href="{{ $backUrl }}" class="btn btn-sm btn-outline-secondary">
                 ← Back
             </a>
         </div>
@@ -26,8 +40,8 @@
         
         {{-- Upload Card --}}
         <div class="card mb-4">
-            @if ($user->user_type === UserType::DEAN 
-                    || $user->user_type === UserType::TASK_FORCE
+            @if ($user->currentRole->name === UserType::DEAN->value
+                    || $user->currentRole->name === UserType::TASK_FORCE->value
                 )
                 <div class="card-body">
                     <form
@@ -95,7 +109,7 @@
                                 </td>
                                 <td>
                                     <span class="badge bg-label-info">
-                                        {{ ucfirst($upload->uploader?->user_type?->value ?? 'N/A') }}
+                                        {{ ucfirst($upload->uploader?->currentRole?->name ?? 'N/A') }}
                                     </span>
                                 </td>
                                 <td>{{ $upload->created_at->format('M d, Y') }}</td>

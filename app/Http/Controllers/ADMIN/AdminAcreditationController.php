@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\ADMIN;
 
+use App\Enums\EvaluationStatus;
 use App\Enums\TaskForceRole;
+use App\Enums\UserStatus;
 use App\Enums\VisitType;
 use App\Http\Controllers\Controller;
+use App\Models\AccreditationEvaluation;
 use App\Models\ADMIN\AccreditationAssignment;
 use App\Models\ADMIN\AccreditationBody;
 use App\Models\ADMIN\AccreditationDocuments;
@@ -18,6 +21,7 @@ use App\Models\ADMIN\Program;
 use App\Models\ADMIN\ProgramAreaMapping;
 use App\Models\ADMIN\SubParameter;
 use App\Models\AreaEvaluation;
+use App\Models\Role;
 use App\Models\User;
 use App\Enums\UserType;
 use Illuminate\Http\Request;
@@ -339,45 +343,37 @@ class AdminAcreditationController extends Controller
     {
         $user = auth()->user();
 
-        $isAdmin = $user->user_type === UserType::ADMIN;
-        $isDean  = $user->user_type === UserType::DEAN;
+        $isAdmin = $user->currentRole->name === UserType::ADMIN->value;
+        $isDean  = $user->currentRole->name === UserType::DEAN->value;
 
         $levelName = AccreditationLevel::where('id', $levelId)->value('level_name');
 
         $program = InfoLevelProgramMapping::where([
             'accreditation_info_id' => $infoId,
             'level_id' => $levelId,
-        ])
-            ->whereHas('program', function ($q) use ($programName) {
-                $q->where('program_name', $programName);
-            })
-            ->first();
-
-        if (!$program) {
-            abort(404, 'Program not found');
-        }
+        ])->whereHas('program', function ($q) use ($programName) {
+            $q->where('program_name', $programName);
+        })->firstOrFail();
 
         /**
          * ---------------------------------------
-         * USERS TO SHOW BASED ON ROLE
+         * USERS TO SHOW BASED ON ROLE (pivot)
          * ---------------------------------------
          */
-        $usersQuery = User::where('status', 'Active')->orderBy('name');
-
         if ($isAdmin) {
-            // ADMIN → Internal Assessors
-            $usersQuery->where('user_type', UserType::INTERNAL_ASSESSOR);
-
+            // Show users who have "Internal Assessor" role
+            $users = User::whereHas('roles', function ($q) {
+                $q->where('name', UserType::INTERNAL_ASSESSOR->value);
+            })->where('status', UserStatus::ACTIVE->value)->orderBy('name')->get();
         } elseif ($isDean) {
-            // DEAN → Task Force
-            $usersQuery->whereIn('user_type', [
-                UserType::TASK_FORCE,
-            ]);
+            // Show users who have "Task Force" role
+            $users = User::whereHas('roles', function ($q) {
+                $q->where('name', UserType::TASK_FORCE->value);
+            })->where('status', UserStatus::ACTIVE->value)->orderBy('name')->get();
+        } else {
+            $users = collect(); // Other roles don't see additional users
         }
 
-        $users = $usersQuery->get();
-
-        // All available users
         $availableUsers = $users;
 
         /**
@@ -389,36 +385,31 @@ class AdminAcreditationController extends Controller
             $programAreas = ProgramAreaMapping::with([
                 'users' => function ($q) use ($isAdmin, $isDean) {
                     if ($isAdmin) {
-                        $q->where('user_type', UserType::INTERNAL_ASSESSOR);
+                        $q->whereHas('roles', fn($q) => $q->where('name', 'Internal Assessor'));
+                    } elseif ($isDean) {
+                        $q->whereHas('roles', fn($q) => $q->where('name', 'Task Force'));
                     }
-
-                    if ($isDean) {
-                        $q->where('user_type', UserType::TASK_FORCE);
-                    }
+                    $q->orderBy('name');
                 }
-            ])
-                ->where('info_level_program_mapping_id', $program->id)
-                ->get();
+            ])->where('info_level_program_mapping_id', $program->id)->get();
         } else {
-
+            // Non-admin/dean: filter areas first
             $assignedAreaIds = AccreditationAssignment::where([
                 'user_id' => $user->id,
                 'accred_info_id' => $infoId,
                 'level_id' => $levelId,
                 'program_id' => $program->program_id,
-            ])
-                ->pluck('area_id')
-                ->unique()
-                ->values();
+            ])->pluck('area_id')->unique()->values();
 
-            $programAreas = ProgramAreaMapping::with([
-                'users' => function ($q) use ($user) {
-                    $q->where('user_type', $user->user_type);
-                }
-            ])
-                ->where('info_level_program_mapping_id', $program->id)
-                ->whereIn('id', $assignedAreaIds)
-                ->get();
+            $programAreas = ProgramAreaMapping::with(['users' => function ($q) use ($user) {
+                // Only users with same role as logged-in user
+                $roleName = $user->currentRole->name;
+                $q->whereHas('roles', fn($q) => $q->where('name', $roleName));
+                $q->orderBy('name');
+            }])
+            ->where('info_level_program_mapping_id', $program->id)
+            ->whereIn('id', $assignedAreaIds)
+            ->get();
         }
 
         return view('admin.accreditors.program', [
@@ -430,7 +421,7 @@ class AdminAcreditationController extends Controller
             'users' => $availableUsers,
             'programAreas' => $programAreas,
             'isAdmin' => $isAdmin,
-            'isDean' => $isDean
+            'isDean' => $isDean,
         ]);
     }
 
@@ -537,20 +528,28 @@ class AdminAcreditationController extends Controller
                 if (!empty($areaData['users'])) {
                     foreach ($areaData['users'] as $userId) {
 
+                        $user = User::findOrFail($userId);
+                        $currentRoleId = $user->currentRole->id;
+
                         // Prevent duplicate user in same area
                         $alreadyAssigned = AccreditationAssignment::where([
                             'user_id' => $userId,
-                            'accred_info_id' => $request->accreditation_info_id,
-                            'level_id' => $request->level_id,
-                            'program_id' => $request->program_id,
-                            'area_id' => $request->area_id,
+                            'role_id' => $currentRoleId,
+                            'accred_info_id' => $context->accreditation_info_id,
+                            'level_id' => $context->level_id,
+                            'program_id' => $context->program_id,
+                            'area_id' => $programArea->id,
                         ])->exists();
 
-                        if ($alreadyAssigned) {
-                            return response()->json([
-                                'success' => false,
-                                'message' => 'This user is already assigned to this area.'
-                            ], 422);
+                        if (!$alreadyAssigned) {
+                            AccreditationAssignment::create([
+                                'user_id' => $userId,
+                                'role_id' => $currentRoleId,
+                                'accred_info_id' => $context->accreditation_info_id,
+                                'level_id' => $context->level_id,
+                                'program_id' => $context->program_id,
+                                'area_id' => $programArea->id,
+                            ]);
                         }
                     }
                 }
@@ -631,6 +630,7 @@ class AdminAcreditationController extends Controller
                     }
 
                     $user = User::findOrFail($userId);
+                    $currentRoleId = $user->currentRole->id;
 
                     // ✅ Only enforce chair rule if role exists
                     if ($role === TaskForceRole::CHAIR) {
@@ -669,6 +669,7 @@ class AdminAcreditationController extends Controller
 
                     AccreditationAssignment::create([
                         'user_id' => $userId,
+                        'role_id' => $currentRoleId,
                         'accred_info_id' => $context->accreditation_info_id,
                         'level_id' => $context->level_id,
                         'program_id' => $context->program_id,
@@ -720,18 +721,22 @@ class AdminAcreditationController extends Controller
     ) {
         $user = auth()->user();
 
-        $isAdmin = $user->user_type === UserType::ADMIN;
-        $isDean  = $user->user_type === UserType::DEAN;
-        $isTaskForce = $user->user_type === UserType::TASK_FORCE;
-        $isInternalAssessor = $user->user_type === UserType::INTERNAL_ASSESSOR;
-        $isAccreditor = $user->user_type === UserType::ACCREDITOR;
+        $roleName = $user->currentRole->name;
 
+        $isAdmin            = $roleName === UserType::ADMIN->value;
+        $isDean             = $roleName === UserType::DEAN->value;
+        $isTaskForce        = $roleName === UserType::TASK_FORCE->value;
+        $isInternalAssessor = $roleName === UserType::INTERNAL_ASSESSOR->value;
+        $isAccreditor       = $roleName === UserType::ACCREDITOR->value;
+
+        // ================= CONTEXT =================
         $context = InfoLevelProgramMapping::where([
             'accreditation_info_id' => $infoId,
             'level_id'              => $levelId,
             'program_id'            => $programId,
         ])->firstOrFail();
 
+        // ================= PROGRAM AREA =================
         $programArea = ProgramAreaMapping::with([
             'area',
             'parameters.sub_parameters'
@@ -740,30 +745,47 @@ class AdminAcreditationController extends Controller
         ->where('info_level_program_mapping_id', $context->id)
         ->firstOrFail();
 
-        $assignments = AccreditationAssignment::with('user')
-            ->where('accred_info_id', $infoId)
-            ->where('level_id', $levelId)
-            ->where('program_id', $programId)
-            ->where('area_id', $programArea->area->id)
-            ->get();
+        // ================= ASSIGNMENTS QUERY =================
+        $assignmentsQuery = AccreditationAssignment::with([
+            'user',
+            'role'
+        ])
+        ->where([
+            'accred_info_id' => $infoId,
+            'level_id'       => $levelId,
+            'program_id'     => $programId,
+            'area_id'        => $programArea->area->id,
+        ]);
 
-        // FILTER ASSIGNMENTS BASED ON LOGGED-IN USER
+        // ================= ROLE-BASED FILTERING (DATABASE LEVEL) =================
+
         if ($isAdmin) {
-            $assignments = $assignments->filter(fn ($a) =>
-                in_array($a->user->user_type, [UserType::INTERNAL_ASSESSOR, UserType::ACCREDITOR])
-            );
-        } elseif ($isInternalAssessor) {
-            $assignments = $assignments->filter(fn ($a) =>
-                $a->user->user_type === UserType::INTERNAL_ASSESSOR
-            );
-        } elseif ($isDean || $isTaskForce || $isInternalAssessor) {
-            $assignments = $assignments->filter(fn ($a) =>
-                $a->user->user_type === UserType::TASK_FORCE
-            );
+            $assignmentsQuery->whereHas('user.roles', function ($q) {
+                $q->whereIn('name', [
+                    UserType::INTERNAL_ASSESSOR->value,
+                    UserType::ACCREDITOR->value
+                ]);
+            });
+        }
 
-            // SORT TASK FORCE: Chair first, then Member
+        elseif ($isInternalAssessor) {
+            $assignmentsQuery->whereHas('user.roles', function ($q) {
+                $q->where('name', UserType::INTERNAL_ASSESSOR->value);
+            });
+        }
+
+        elseif ($isDean || $isTaskForce) {
+            $assignmentsQuery->whereHas('user.roles', function ($q) {
+                $q->where('name', UserType::TASK_FORCE->value);
+            });
+        }
+
+        $assignments = $assignmentsQuery->get();
+
+        // ================= SORT TASK FORCE (Chair First) =================
+        if ($isDean || $isTaskForce) {
             $assignments = $assignments->sortByDesc(fn ($a) =>
-                strtolower($a->role?->value) === 'chair' ? 1 : 0
+                strtolower($a->role?->value ?? '') === 'chair'
             );
         }
 
@@ -875,6 +897,8 @@ class AdminAcreditationController extends Controller
             'files.*' => 'file|max:10240',
         ]);
 
+        $user = auth()->user();
+
         foreach ($request->file('files') as $file) {
 
             $path = $file->store(
@@ -890,6 +914,7 @@ class AdminAcreditationController extends Controller
                 'level_id' => $levelId,
                 'accred_info_id' => $infoId,
                 'upload_by' => Auth::id(),
+                'role_id' => $user->currentRole->id,
 
                 'file_name' => $file->getClientOriginalName(),
                 'file_path' => $path,
@@ -926,9 +951,9 @@ class AdminAcreditationController extends Controller
         /**
          * USER ROLES
          */
-        $isAdmin = $user?->user_type === UserType::ADMIN;
-        $isInternalAssessor = $user?->user_type === UserType::INTERNAL_ASSESSOR;
-        $isAccreditor = $user?->user_type === UserType::ACCREDITOR;
+        $isAdmin = $user->currentRole === UserType::ADMIN->value;
+        $isInternalAssessor = $user->currentRole === UserType::INTERNAL_ASSESSOR->value;
+        $isAccreditor = $user->currentRole === UserType::ACCREDITOR->value;
 
         /**
          * UI FLAGS
@@ -1026,10 +1051,10 @@ class AdminAcreditationController extends Controller
     ) {
         $user = auth()->user();
 
-        $isAdmin = $user->user_type === UserType::ADMIN;
-        $isDean = $user->user_type === UserType::DEAN;
-        $isInternalAssessor = $user->user_type === UserType::INTERNAL_ASSESSOR;
-        $isTaskForce = $user->user_type === UserType::TASK_FORCE;
+        $isAdmin = $user->currentRole->name === UserType::ADMIN->value;
+        $isDean = $user->currentRole->name === UserType::DEAN->value;
+        $isInternalAssessor = $user->currentRole->name === UserType::INTERNAL_ASSESSOR->value;
+        $isTaskForce = $user->currentRole->name === UserType::TASK_FORCE->value;
 
         // ================= PROGRAM =================
         $program = Program::findOrFail($programId);
@@ -1045,37 +1070,42 @@ class AdminAcreditationController extends Controller
         $programAreasQuery = ProgramAreaMapping::with([
             'area',
 
-            // USERS SHOWN PER AREA (ROLE-BASED)
-            'users' => function ($q) use (
-                $isAdmin,
-                $isDean,
-                $isInternalAssessor,
-                $isTaskForce
-            ) {
-                if ($isAdmin || $isInternalAssessor) {
-                    $q->where('user_type', UserType::INTERNAL_ASSESSOR);
-                }
+            'users' => function ($q) use ($user, $isAdmin, $isDean, $isInternalAssessor, $isTaskForce) {
 
-                if ($isDean || $isTaskForce) {
-                    $q->where('user_type', UserType::TASK_FORCE);
+                if ($isAdmin) {
+                    // Admin: see all Internal Assessors
+                    $q->whereHas('roles', fn($q) => $q->where('name', UserType::INTERNAL_ASSESSOR->value));
+                } elseif ($isDean) {
+                    // Dean: see all Task Forces
+                    $q->whereHas('roles', fn($q) => $q->where('name', UserType::TASK_FORCE->value));
+                } elseif ($isInternalAssessor) {
+                    // Internal Assessor: see only Internal Assessors assigned to this area
+                    $q->whereHas('roles', fn($q) => $q->where('name', UserType::INTERNAL_ASSESSOR->value))
+                    ->wherePivot('user_id', $user->id)
+                    ->orWhereHas('roles', fn($q) => $q->where('name', UserType::INTERNAL_ASSESSOR->value));
+                } elseif ($isTaskForce) {
+                    // Task Force: see only Task Forces assigned to this area
+                    $q->whereHas('roles', fn($q) => $q->where('name', UserType::TASK_FORCE->value))
+                    ->wherePivot('user_id', $user->id)
+                    ->orWhereHas('roles', fn($q) => $q->where('name', UserType::TASK_FORCE->value));
                 }
 
                 $q->orderBy('name');
             },
 
-            // latest evaluation per area
+            // Latest evaluation per area
             'evaluations' => function ($q) {
                 $q->latest()->limit(1);
             },
 
             'evaluations.files.uploader',
+            'users.roles',
         ])
         ->where('info_level_program_mapping_id', $context->id);
 
         // ================= AREA VISIBILITY =================
         if (!$isAdmin && !$isDean) {
-            // Internal Assessor / Task Force
-            // only areas assigned to logged-in user
+            // Internal Assessors / Task Forces see only areas they are assigned to
             $programAreasQuery->whereHas('users', function ($q) use ($user) {
                 $q->where('users.id', $user->id);
             });
@@ -1114,7 +1144,7 @@ class AdminAcreditationController extends Controller
         ])->firstOrFail();
 
         // ================= ACCESS CONTROL =================
-        if ($user->user_type === UserType::INTERNAL_ASSESSOR) {
+        if ($user->currentRole->name === UserType::INTERNAL_ASSESSOR->value) {
 
             $isAssigned = ProgramAreaMapping::where('id', $programAreaId)
             ->where('info_level_program_mapping_id', $context->id)
@@ -1152,7 +1182,7 @@ class AdminAcreditationController extends Controller
         // ================= PARAMETERS =================
         $parameters = $programArea->parameters;
 
-        // ================= EXISTING EVALUATION =================
+        // ================= EXISTING EVALUATION (FILE-BASED) =================
         $evaluation = AreaEvaluation::with([
             'ratings.subparameter',
             'files.uploader',
@@ -1162,9 +1192,31 @@ class AdminAcreditationController extends Controller
             ->latest()
             ->first();
 
+        // ================= EXISTING EVALUATION (SYSTEM-BASED) =================
+        $currentUserEvaluation = AccreditationEvaluation::where([
+            'accred_info_id' => $infoId,
+            'level_id'       => $levelId,
+            'program_id'     => $programId,
+            'area_id'        => $programAreaId,
+            'evaluated_by'   => $user->id,
+        ])->with('subparameterRatings.ratingOption', 'areaRecommendations')->first();
+
+        // Flag for lock warning
+        $isSubmittedOrUpdated = false;
+        if ($currentUserEvaluation) {
+            $isSubmittedOrUpdated = in_array($currentUserEvaluation->status, [
+                EvaluationStatus::SUBMITTED,
+                EvaluationStatus::UPDATED
+            ]);
+        }
+
+        $isFinal = $currentUserEvaluation?->is_final ?? false;
+
+        $locked = $currentUserEvaluation ? true : false;
+
         // ================= USER ROLES =================
-        $isAdmin = $user?->user_type === UserType::ADMIN;
-        $isInternalAssessor = $user?->user_type === UserType::INTERNAL_ASSESSOR;
+        $isAdmin = $user->currentRole->name === UserType::ADMIN->value;
+        $isInternalAssessor = $user?->currentRole->name === UserType::INTERNAL_ASSESSOR->value;
 
         // ================= STATE FLAGS =================
         $isEvaluated = !is_null($evaluation);
@@ -1183,7 +1235,10 @@ class AdminAcreditationController extends Controller
             'isEvaluated',
             'isLocked',
             'isAdmin',
-            'isInternalAssessor'
+            'isInternalAssessor',
+            'currentUserEvaluation',
+            'isSubmittedOrUpdated',
+            'isFinal'
         ));
     }
 }

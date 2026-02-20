@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EvaluationStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\ADMIN\AccreditationInfo;
@@ -20,6 +21,7 @@ class AccreditationEvaluation extends Model
         'program_id',
         'area_id',
         'evaluated_by',
+        'status'
     ];
 
     public function accreditationInfo()
@@ -58,10 +60,29 @@ class AccreditationEvaluation extends Model
         );
     }
 
-    protected $appends = ['is_updated'];
+    protected $appends = ['is_final', 'is_updated'];
 
     public function getIsUpdatedAttribute(): bool
     {
         return $this->updated_at->gt($this->created_at);
+    }
+
+    public function getIsFinalAttribute(): bool
+    {
+        return $this->status === EvaluationStatus::FINALIZED;
+    }
+
+    protected $casts = [
+        'status' => EvaluationStatus::class,
+    ];
+
+    protected static function booted()
+    {
+        static::updating(function ($evaluation) {
+            if ($evaluation->status !== EvaluationStatus::FINALIZED &&
+                $evaluation->updated_at->gt($evaluation->created_at)) {
+                $evaluation->status = EvaluationStatus::UPDATED;
+            }
+        });
     }
 }
