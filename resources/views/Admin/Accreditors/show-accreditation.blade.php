@@ -1,6 +1,19 @@
 @extends('admin.layouts.master')
 
 @section('contents')
+<style>
+    .program-row {
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+    }
+
+    .program-row:hover {
+        background-color: #f8f9fa; /* light gray hover */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        transform: translateY(-1px);
+        text-decoration: none;
+    }
+</style>
 <div class="container-xxl container-p-y">
 
     {{-- ================= HEADER ================= --}}
@@ -125,7 +138,7 @@
                                 </span>
                                 <span class="badge bg-label-primary ms-3 programs-count-badge"
                                     data-level-id="{{ $level->id }}">
-                                    {{ $items->count() }} Programs
+                                    {{ $items->count() }} {{ Str::plural('Program', $items->count()) }}
                                 </span>
                             </button>
                         </h2>
@@ -136,22 +149,17 @@
                                 {{-- PROGRAM LIST --}}
                                 <div class="list-group list-group-flush">
                                     @foreach($items as $mapping)
-                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <a href="{{ route('admin.accreditations.program', [
+                                                'infoId' => $accreditation->id,
+                                                'levelId' => $level->id,
+                                                'programName' => $mapping->program->program_name
+                                            ]) }}"
+                                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center program-row"
+                                            title="View Areas">
+                                            
                                             <span>{{ $mapping->program->program_name }}</span>
 
                                             <div class="d-flex gap-2">
-                                                <a href="{{ route('admin.accreditations.program', [
-                                                        'infoId' => $accreditation->id,
-                                                        'levelId' => $level->id,
-                                                        'programName' => $mapping->program->program_name
-                                                    ]) }}"
-                                                    class="btn btn-xs btn-outline-info"
-                                                    data-bs-toggle="tooltip"
-                                                    title="View Areas">
-                                                    <i class="bx bx-sitemap"></i>
-                                                    {{ !$isAdmin ? 'View Areas' : '' }}
-                                                </a>
-
                                                 @if ($isAdmin)
                                                     <button class="btn btn-xs btn-outline-primary edit-program-btn"
                                                             title="Edit Program"
@@ -169,7 +177,7 @@
                                                     </button>
                                                 @endif
                                             </div>
-                                        </div>
+                                        </a>
                                     @endforeach
                                 </div>
 

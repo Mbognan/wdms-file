@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ADMIN\AccreditationProgramController;
 use App\Http\Controllers\ADMIN\AccreditationController;
+use App\Http\Controllers\ADMIN\ParameterController;
 use App\Http\Controllers\RoleRequestController;
 use App\Http\Controllers\ADMIN\AdminAcreditationController;
 use App\Http\Controllers\ADMIN\AdminTaskForceController;
@@ -215,6 +216,23 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/switch-role', [SwitchRoleController::class, 'switch'])
     ->name('switch.role')
     ->middleware('auth');
+});
+
+// Route for updating and deleting parameters and sub-parameters
+Route::middleware(['auth'])->group(function () {
+    Route::patch('/parameters/bulk-update', [ParameterController::class, 'bulkUpdate'])
+        ->name('parameters.bulk-update');
+
+    Route::patch('/subparameters/{subParameter}', [ParameterController::class, 'updateSubParameter'])
+        ->name('subparameters.update');
+
+        
+    Route::delete('/parameters/bulk-delete', [ParameterController::class, 'bulkDelete'])
+    ->name('parameters.bulk-delete');
+    
+    Route::delete('/subparameters/{subParameter}', [ParameterController::class, 'deleteSubParameter'])
+        ->name('subparameters.delete');
+
 });
 
 require __DIR__ . '/auth.php';

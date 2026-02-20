@@ -52,7 +52,7 @@
                                     : 'bg-secondary' }}">
                                 {{ $role->name }}
 
-                                @if($user->current_role_id === $role->id)
+                                @if($user->roles->count() > 1 && $user->current_role_id === $role->id)
                                     (Current)
                                 @endif
                             </span>

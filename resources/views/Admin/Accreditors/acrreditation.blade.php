@@ -16,6 +16,9 @@
 .program-card .card-icon-bg { position: absolute; right: -20px; bottom: -20px; font-size: 120px; opacity: 0.12; color: #ffffff; pointer-events: none; }
 .program-card .program-header { position: relative; z-index: 2; padding: 18px 12px; font-weight: 600; font-size: 1rem; }
 .program-card .status-badge { margin-top: 10px; }
+/* Clickable accreditation row */
+.accred-row { cursor: pointer; transition: background-color 0.2s ease; }
+.accred-row:hover { background-color: #f0f0f0; /* Slightly darker on hover */ }
 </style>
 
 <div class="container-xxl container-p-y">
@@ -31,8 +34,6 @@
     </div>
 
     <div class="card">
-        <h5 class="card-header">Accreditations</h5>
-
         <div class="table-responsive text-nowrap">
             <table id="accreditationTable" class="table">
                 <thead>
@@ -312,7 +313,7 @@ form.addEventListener('submit', function(e) {
 /* ================= DATATABLE ROWS ================= */
 function accreditationRow(info) {
     return `
-        <tr class="accred-row" data-id="${info.id}">
+        <tr class="accred-row" data-id="${info.id}" data-href="/admin/accreditations/${info.id}">
             <td>
                 <i class="bx bx-certification bx-sm text-primary me-3"></i>
                 <span class="fw-medium">${info.title}</span>
@@ -333,9 +334,7 @@ function accreditationRow(info) {
                         <a class="dropdown-item" href="/admin/accreditations/${info.id}"><i class="bx bx-detail me-1"></i> View Details </a>
                         <a class="dropdown-item expand-programs" href="#"><i class="bx bx-collection me-1"></i> View Level & Programs</a>
 
-                        <!-- Add Level / Program -->
                         ${isAdmin ? `
-                        <!-- Add Level / Program (only for admins) -->
                         <a class="dropdown-item add-level-program" href="#"
                         data-bs-toggle="modal" data-bs-target="#addLevelProgramModal"
                         data-info-id="${info.id}">
@@ -346,7 +345,7 @@ function accreditationRow(info) {
                         data-id="${info.id}">
                             <i class="bx bx-edit me-1"></i> Edit Accreditation Info
                         </a>
-        ` : ''}
+                        ` : ''}
                     </div>
                 </div>
             </td>
@@ -586,6 +585,17 @@ $('#editAccreditationForm').on('submit', function (e) {
             showToast('Failed to update accreditation.', 'error');
         }
     });
+});
+
+// Make accreditation row clickable
+$(document).on('click', '.accred-row', function(e) {
+    // Prevent navigating if user clicked inside dropdown or button
+    if ($(e.target).closest('.dropdown, .dropdown-toggle, .dropdown-menu, button, a').length) return;
+
+    const href = $(this).data('href');
+    if (href) {
+        window.location.href = href;
+    }
 });
 
 

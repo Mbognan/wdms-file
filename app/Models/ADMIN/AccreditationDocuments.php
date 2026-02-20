@@ -13,6 +13,7 @@ class AccreditationDocuments extends Model
     'file_path',
     'file_type',
     'upload_by',
+    'role_id',
     'accred_info_id',
     'level_id',
     'program_id',

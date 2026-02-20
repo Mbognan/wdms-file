@@ -109,7 +109,7 @@
                                 </td>
                                 <td>
                                     <span class="badge bg-label-info">
-                                        {{ ucfirst($upload->uploader?->user_type?->value ?? 'N/A') }}
+                                        {{ ucfirst($upload->uploader?->currentRole?->name ?? 'N/A') }}
                                     </span>
                                 </td>
                                 <td>{{ $upload->created_at->format('M d, Y') }}</td>

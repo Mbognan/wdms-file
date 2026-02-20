@@ -15,16 +15,18 @@ class ProgramAreaMapping extends Model
 
     ];
      public function users()
-{
-    return $this->belongsToMany(
-        User::class,
-        'accreditation_assignments',
-        'area_id',
-        'user_id'
-    );
-}
+    {
+        return $this->belongsToMany(
+            User::class,
+            'accreditation_assignments',
+            'area_id',
+            'user_id'
+        )
+        ->withPivot('role_id',)
+        ->withTimestamps();
+    }
 
-     public function assignments()
+    public function assignments()
     {
         return $this->hasMany(AccreditationAssignment::class, 'area_id', 'area_id');
     }
