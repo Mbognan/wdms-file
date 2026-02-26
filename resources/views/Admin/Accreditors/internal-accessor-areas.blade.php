@@ -74,9 +74,11 @@
         </div>
 
         <div class="card-body">
+            @if ($isInternalAssessor)
             <p class="text-muted text-center mb-4">
                 Select an area to proceed with evaluation.
             </p>
+            @endif
 
             <div class="row g-3">
                 @forelse($programAreas as $mapping)
@@ -146,7 +148,6 @@
                             </div>
                         </a>
                     </div>
-
                 @empty
                     <div class="col-12 text-center">
                         <p class="text-muted fst-italic">

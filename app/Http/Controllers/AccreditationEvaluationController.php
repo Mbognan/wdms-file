@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\EvaluationStatus;
 use App\Models\AccreditationEvaluation;
 use App\Models\AreaRecommendation;
 use App\Models\ADMIN\Parameter;
@@ -22,11 +23,11 @@ class AccreditationEvaluationController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $isAdmin = $user->user_type === UserType::ADMIN;
-        $isDean = $user->user_type === UserType::DEAN;
-        $isTaskForce = $user->user_type === UserType::TASK_FORCE;
-        $isInternalAssessor = $user->user_type === UserType::INTERNAL_ASSESSOR;
-        $isAccreditor = $user->user_type === UserType::ACCREDITOR;
+        $isAdmin = $user->currentRole->name === UserType::ADMIN->value;
+        $isDean = $user->currentRole->name === UserType::DEAN->value;
+        $isTaskForce = $user->currentRole->name === UserType::TASK_FORCE->value;
+        $isInternalAssessor = $user->currentRole->name === UserType::INTERNAL_ASSESSOR->value;
+        $isAccreditor = $user->currentRole->name === UserType::ACCREDITOR->value;
 
         $query = AccreditationEvaluation::with([
             'accreditationInfo',
@@ -38,12 +39,14 @@ class AccreditationEvaluationController extends Controller
             'subparameterRatings.subparameter.parameter',
         ]);
 
+        $user = auth()->user();
+
         // ===============================
         // ROLE-BASED VISIBILITY
         // ===============================
-        
-        // TASK FORCE → only evaluations for assigned areas
-        if ($user->user_type === UserType::TASK_FORCE) {
+
+        // TASK FORCE → only evaluations for assigned areas (all statuses)
+        if ($user->currentRole->name === UserType::TASK_FORCE->value) {
             $query->whereHas('areaRecommendations', function ($q) use ($user) {
                 $q->whereHas('area', function ($areaQ) use ($user) {
                     $areaQ->whereIn('id', function ($sub) use ($user) {
@@ -55,24 +58,26 @@ class AccreditationEvaluationController extends Controller
             });
         }
 
-        // INTERNAL ASSESSOR → only evaluations they made
-        if ($user->user_type === UserType::INTERNAL_ASSESSOR) {
+        // INTERNAL ASSESSOR → only evaluations they made (all statuses)
+        if ($user->currentRole->name === UserType::INTERNAL_ASSESSOR->value) {
             $query->where('evaluated_by', $user->id);
         }
 
-        // ACCREDITOR → see ALL Internal Assessor evaluations
-        if ($user->user_type === UserType::ACCREDITOR) {
-            $query->whereHas('evaluator', function ($q) {
-                $q->where('user_type', UserType::INTERNAL_ASSESSOR);
-            });
+        // ACCREDITOR / ADMIN / DEAN → only finalized internal assessor evaluations
+        if (in_array($user->currentRole->name, [
+            UserType::ACCREDITOR->value, 
+            UserType::ADMIN->value, 
+            UserType::DEAN->value
+        ])) {
+            $query->where('status', EvaluationStatus::FINALIZED)
+                ->whereHas('evaluator', function ($q) {
+                    $q->where('user_type', UserType::INTERNAL_ASSESSOR);
+                });
         }
 
-        // ADMIN/DEAN → sees everything (no filter)
-        $evaluations = $query
-            ->get()
-            ->groupBy(fn ($e) =>
-                $e->accred_info_id.'-'.$e->level_id.'-'.$e->program_id
-            );
+        $evaluations = $query->get()->groupBy(fn ($e) =>
+            $e->accred_info_id.'-'.$e->level_id.'-'.$e->program_id
+        );
 
         $grandMeans = [];
         $signatories = [];
@@ -95,48 +100,64 @@ class AccreditationEvaluationController extends Controller
 
                 foreach ($filteredEvaluations as $evaluation) {
 
+                    // Skip non-finalized for Admin/Dean/Accreditor
+                    if (in_array($user->currentRole->name, [
+                        UserType::ACCREDITOR->value, 
+                        UserType::ADMIN->value, 
+                        UserType::DEAN->value
+                    ]) &&
+                        $evaluation->status !== EvaluationStatus::FINALIZED) {
+                        continue;
+                    }
+
                     $ratingsByArea = $evaluation->subparameterRatings
                         ->groupBy(fn ($r) => $r->subparameter->parameter->area_id);
 
                     foreach ($ratingsByArea as $areaId => $ratings) {
 
                         $totalScore = 0;
-                        $count = 0;
+                        $applicableCount = 0;
 
                         foreach ($ratings as $rating) {
                             $label = $rating->ratingOption->label;
 
                             if (in_array($label, ['Available', 'Available but Inadequate'])) {
                                 $totalScore += $rating->score;
-                                $count++;
+                                $applicableCount++;
+                            } elseif ($label === 'Not Available') {
+                                $applicableCount++;
                             }
                         }
 
-                        if ($count > 0) {
-                            $areaMeans[$areaId][] = $totalScore / $count;
+                        if ($applicableCount > 0) {
+                            $areaMeans[$areaId][] = round($totalScore / $applicableCount, 2);
                         }
                     }
                 }
 
-                $finalAreaMeans = collect($areaMeans)
-                    ->map(fn ($means) => collect($means)->avg());
+               $finalAreaMeans = collect($areaMeans)
+                    ->map(fn ($means) => round(collect($means)->avg(), 2));
 
-                $areaIds = $filteredEvaluations
-                    ->flatMap(fn ($e) => $e->areaRecommendations->pluck('area_id'))
-                    ->unique()
-                    ->values();
+                // Fetch all area IDs for this program or accreditation
+                $allAreaIds = Area::pluck('id'); // Or filter by program/accreditation if needed
+                $areas = Area::whereIn('id', $allAreaIds)
+                            ->orderBy('id')
+                            ->get();
 
-                $areas = Area::whereIn('id', $areaIds)
-                    ->orderBy('id')
-                    ->get();
+                // Build area means map with defaults
+                $finalAreaMeansMap = [];
+                foreach ($areas as $area) {
+                    $finalAreaMeansMap[$area->id] = $finalAreaMeans[$area->id] ?? 0;
+                }
 
+                // Replace the previous $grandMeans assignment
                 $grandMeans[$key][$type] = [
                     'areaModels' => $areas,
-                    'areas'      => $finalAreaMeans,
-                    'total'      => $finalAreaMeans->sum(),
+                    'areas'      => collect($finalAreaMeansMap),
+                    'total'      => collect($finalAreaMeansMap)->sum(),
                     'grand'      => $areas->count()
-                        ? $finalAreaMeans->sum() / $areas->count()
-                        : 0,
+                                    ? collect($finalAreaMeansMap)->sum() / $areas->count()
+                                    : 0,
                 ];
 
                 $signatories[$key][$type] = $filteredEvaluations
@@ -145,7 +166,6 @@ class AccreditationEvaluationController extends Controller
                     ->values();
             }
         }
-
 
         return view(
             'admin.accreditors.evaluations', 
@@ -183,17 +203,16 @@ class AccreditationEvaluationController extends Controller
          * - Others see it locked (read-only)
          */
 
-        $existingEvaluation = AccreditationEvaluation::where([
-                'accred_info_id' => $infoId,
-                'level_id'       => $levelId,
-                'program_id'     => $programId,
-                'area_id'        => $programAreaId,
-            ])
-            ->whereHas('evaluator', function ($q) {
-                $q->where('user_type', UserType::INTERNAL_ASSESSOR);
-            })
-            ->with('evaluator')
-            ->first();
+        $currentUserEvaluation = AccreditationEvaluation::where([
+            'accred_info_id' => $infoId,
+            'level_id'       => $levelId,
+            'program_id'     => $programId,
+            'area_id'        => $programAreaId,
+            'evaluated_by'   => $user->id,
+        ])->first();
+
+        $isEvaluated = $currentUserEvaluation ? true : false;
+
 
         /**
          * Determine lock state
@@ -204,14 +223,21 @@ class AccreditationEvaluationController extends Controller
          */
         $isEvaluated = false;
 
-        if ($existingEvaluation) {
-            $isEvaluated = $existingEvaluation->evaluated_by !== $user->id;
+        if ($currentUserEvaluation) {
+            $isEvaluated = $currentUserEvaluation->evaluated_by !== $user->id;
         }
 
         // Load parameters & subparameters for this area
-        $parameters = Parameter::with('sub_parameters')
-            ->where('area_id', $programArea->area_id)
-            ->get();
+        $parameters = Parameter::with([
+            'sub_parameters.uploads' => function ($q) use ($infoId, $levelId, $programId, $programAreaId) {
+                $q->where('accred_info_id', $infoId)
+                ->where('level_id', $levelId)
+                ->where('program_id', $programId)
+                ->where('program_area_id', $programAreaId);
+            }
+        ])
+        ->where('area_id', $programArea->area_id)
+        ->get();
 
         return view('admin.accreditors.internal-accessor-parameter', [
             'programArea'   => $programArea,
@@ -221,9 +247,10 @@ class AccreditationEvaluationController extends Controller
             'programId'     => $programId,
             'programAreaId' => $programAreaId,
             'isEvaluated'   => $isEvaluated,
-            'evaluatedBy'   => $existingEvaluation?->evaluator?->name,
+            'evaluatedBy' => $currentUserEvaluation?->evaluator?->name,
         ]);
     }
+
 
     /* =========================================================
      | STORE – SAVE AREA EVALUATION (POST)
@@ -247,10 +274,11 @@ class AccreditationEvaluationController extends Controller
         $areaId = $programArea->area_id;
 
         $user = auth()->user();
-        $isAccreditor = $user->user_type === UserType::ACCREDITOR;
+        $isIA = $user->currentRole->name === UserType::INTERNAL_ASSESSOR->value;
+        $isAccreditor = $user->currentRole->name === UserType::ACCREDITOR->value;
 
         // INTERNAL ASSESSOR → only one per area
-        if ($user->user_type === UserType::INTERNAL_ASSESSOR) {
+        if ($isIA) {
 
             $alreadyEvaluated = AccreditationEvaluation::query()
                 ->where('accred_info_id', $validated['accred_info_id'])
@@ -285,17 +313,25 @@ class AccreditationEvaluationController extends Controller
 
             $evaluation = AccreditationEvaluation::updateOrCreate(
     [
-                    'accred_info_id'                 => $validated['accred_info_id'],
-                    'level_id'                       => $validated['level_id'],
-                    'program_id'                     => $validated['program_id'],
-                    'area_id'                        => $areaId,
-                    'evaluated_by'                   => auth()->id(),
+                    'accred_info_id'       => $validated['accred_info_id'],
+                    'level_id'             => $validated['level_id'],
+                    'program_id'           => $validated['program_id'],
+                    'area_id'              => $areaId,
+                    'evaluated_by'         => auth()->id(),
+                        
                 ],
                 [
+                    'role_id'              => auth()->user()->currentRole->id,
+                    'status'               => EvaluationStatus::SUBMITTED 
                 ]
             );
 
             foreach ($validated['evaluations'] as $subId => $data) {
+
+                if (!$data || !isset($data['status'])) {
+                    continue;
+                }
+
                 SubparameterRating::updateOrCreate(
                     [
                         'evaluation_id'   => $evaluation->id,
@@ -304,7 +340,7 @@ class AccreditationEvaluationController extends Controller
                     [
                         'rating_option_id' =>
                             $this->mapStatusToRatingOption($data['status']),
-                        'score' => $data['score'],
+                        'score' => $data['score'] ?? 0,
                     ]
                 );
             }
@@ -346,10 +382,12 @@ class AccreditationEvaluationController extends Controller
     {
         $user = auth()->user();
 
+        $isAccreditor = $user->currentRole->name === UserType::ACCREDITOR->value;
+
         // ACCESS CONTROL
         // Admin, Dean, Accreditor can view all the evaluations
         // Internal assessor can only view the own evaluation they made
-        if ($user->user_type === UserType::ACCREDITOR) {
+        if ($user->currentRole->name === UserType::ACCREDITOR->value) {
 
             $isOwnEvaluation = $evaluation->evaluated_by === $user->id;
 
@@ -362,7 +400,7 @@ class AccreditationEvaluationController extends Controller
         }
 
         // Task Force can only view evaluation under the area they are assigned
-        if ($user->user_type === UserType::TASK_FORCE) {
+        if ($user->currentRole->name === UserType::TASK_FORCE->value) {
             $assigned = AccreditationAssignment::where('user_id', $user->id)
                 ->where('area_id', $area->id)
                 ->exists();
@@ -393,7 +431,7 @@ class AccreditationEvaluationController extends Controller
             'program',
             'evaluator',
             'subparameterRatings.ratingOption',
-            'areaRecommendations.area',
+            'areaRecommendations.area'
         ]);
 
         // Resolve the evaluated AREA
@@ -401,10 +439,15 @@ class AccreditationEvaluationController extends Controller
             ->where('area_id', $area->id)
             ->firstOrFail();
 
+        // Area evaluator (Internal Assessor)
+        $areaEvaluator = $evaluation->evaluator;
+
         // Load parameters + subparameters ONLY for this area
         $parameters = Parameter::with('sub_parameters')
             ->where('area_id', $area->id)
             ->get();
+
+        
 
         // Collect ALL subparameter IDs for this area
         $subparameterIds = $parameters
@@ -421,7 +464,7 @@ class AccreditationEvaluationController extends Controller
             'available'       => 0,
             'inadequate'      => 0,
             'not_available'   => 0,
-            'not_applicable'  => 'N/A',
+            'not_applicable'  => 0,
         ];
 
         $totalScore = 0;
@@ -453,23 +496,56 @@ class AccreditationEvaluationController extends Controller
             ? number_format($totalScore / $applicableCount, 2)
             : '0.00';
 
-         // ===============================
-        // PREV / NEXT AREA (evaluated only)
-        // ===============================
-        $areaIds = $evaluation->areaRecommendations()
-            ->orderBy('area_id')
-            ->pluck('area_id')
-            ->values();
+        $query = AccreditationEvaluation::query()
+            ->where('accred_info_id', $evaluation->accred_info_id)
+            ->where('level_id', $evaluation->level_id)
+            ->where('program_id', $evaluation->program_id);
 
-        $currentIndex = $areaIds->search($area->id);
+        /*
+        |--------------------------------------------------------------------------
+        | APPLY SAME ROLE VISIBILITY RULES
+        |--------------------------------------------------------------------------
+        */
 
-        $prevArea = ($currentIndex !== false && $currentIndex > 0)
-            ? Area::find($areaIds[$currentIndex - 1])
-            : null;
+        // INTERNAL ASSESSOR → only own evaluations
+        if ($user->currentRole->name === UserType::INTERNAL_ASSESSOR->value) {
+            $query->where('evaluated_by', $user->id);
+        }
 
-        $nextArea = ($currentIndex !== false && $currentIndex < $areaIds->count() - 1)
-            ? Area::find($areaIds[$currentIndex + 1])
-            : null;
+        // ACCREDITOR / ADMIN / DEAN → only finalized internal assessor evaluations
+        if (in_array($user->currentRole->name, [
+            UserType::ACCREDITOR->value,
+            UserType::ADMIN->value,
+            UserType::DEAN->value,
+        ])) {
+            $query->where('status', EvaluationStatus::FINALIZED)
+                ->whereHas('evaluator', function ($q) {
+                    $q->where('user_type', UserType::INTERNAL_ASSESSOR);
+                });
+        }
+
+        // TASK FORCE → only assigned areas
+        if ($user->currentRole->name === UserType::TASK_FORCE->value) {
+            $query->whereHas('areaRecommendations', function ($q) use ($user) {
+                $q->whereHas('area', function ($areaQ) use ($user) {
+                    $areaQ->whereIn('id', function ($sub) use ($user) {
+                        $sub->select('area_id')
+                            ->from('accreditation_assignments')
+                            ->where('user_id', $user->id);
+                    });
+                });
+            });
+        }
+
+        $prevEvaluation = (clone $query)
+            ->where('id', '<', $evaluation->id)
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $nextEvaluation = (clone $query)
+            ->where('id', '>', $evaluation->id)
+            ->orderBy('id', 'asc')
+            ->first();
 
         // 9. Render immutable summary view
         return view('admin.accreditors.show-evaluation', compact(
@@ -479,8 +555,10 @@ class AccreditationEvaluationController extends Controller
             'ratings',
             'totals',
             'mean',
-            'prevArea',
-            'nextArea'
+            'prevEvaluation',
+            'nextEvaluation',
+            'isAccreditor',
+            'areaEvaluator'
         ));
     }
 
@@ -507,11 +585,45 @@ class AccreditationEvaluationController extends Controller
             'program_id' => ['required', 'exists:programs,id'],
         ]);
 
+        $validated['status'] = EvaluationStatus::UPDATED;
+
         $accreditationEvaluation->update($validated);
 
         return redirect()
             ->route('accreditation-evaluations.show', $accreditationEvaluation)
             ->with('success', 'Evaluation updated successfully.');
+    }
+
+    /* =========================================================
+    | MARK AS FINAL
+    ========================================================= */
+    public function markAsFinal(AccreditationEvaluation $evaluation)
+    {
+        $user = auth()->user();
+
+        // Only internal assessor who created it can finalize
+        if (
+            $user->currentRole->name !== UserType::INTERNAL_ASSESSOR->value ||
+            $evaluation->evaluated_by !== $user->id
+        ) {
+            abort(403, 'You are not allowed to finalize this evaluation.');
+        }
+
+        // Prevent double finalizing
+        if ($evaluation->status === EvaluationStatus::FINALIZED) {
+            return back()->with('error', 'Evaluation is already finalized.');
+        }
+
+        $evaluation->update([
+            'status' => EvaluationStatus::FINALIZED,
+        ]);
+
+        return redirect()
+            ->route('program.areas.evaluations.summary', [
+                'evaluation' => $evaluation->id,
+                'area'       => $evaluation->area_id,
+            ])
+            ->with('success', 'Evaluation marked as Final.');
     }
 
     /* =========================================================
@@ -525,6 +637,8 @@ class AccreditationEvaluationController extends Controller
             ->route('accreditation-evaluations.index')
             ->with('success', 'Evaluation deleted successfully.');
     }
+
+
 
     /* =========================================================
      | HELPER – MAP UI STATUS TO RATING OPTION ID

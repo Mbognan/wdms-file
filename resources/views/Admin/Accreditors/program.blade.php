@@ -58,10 +58,17 @@
 
     <div class="container-xxl container-p-y">
 
+        {{-- HEADER WITH BACK BUTTON --}}
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4>
-                <span class="text-muted fw-light">Admin / Accreditation /</span> Area Details
+                <a href="{{ route('admin.accreditation.index') }}">
+                    <span class="text-muted fw-light">Accreditation</span>
+                </a>
+                / Area Details
             </h4>
+            <a href="{{ url()->previous() }}" class="btn btn-secondary btn-sm">
+                <i class="bx bx-arrow-back me-1"></i> Back
+            </a>
         </div>
 
         {{-- ================= PROGRAM CARD ================= --}}
