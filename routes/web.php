@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ADMIN\AccreditationProgramController;
 use App\Http\Controllers\ADMIN\AccreditationController;
+use App\Http\Controllers\ADMIN\AssignmentController;
 use App\Http\Controllers\ADMIN\ParameterController;
 use App\Http\Controllers\RoleRequestController;
 use App\Http\Controllers\ADMIN\AdminAcreditationController;
@@ -11,11 +12,12 @@ use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AccreditationEvaluationController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SwitchRoleController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->route('login');
+    return view('welcome');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -99,10 +101,6 @@ Route::middleware('auth')->group(function () {
         '/sub-parameter/{subParameter}/uploads/{infoId}/{levelId}/{programId}/{programAreaId}',
         [AdminAcreditationController::class, 'storeSubParameterUploads']
     )->name('subparam.uploads.store');
-    Route::post(
-        '/admin/areas/assign-users',
-        [AdminAcreditationController::class, 'assignUsersToArea']
-    )->name('areas.assign.users');
 
     Route::delete(
         '/subparam/uploads/{upload}',
@@ -113,12 +111,12 @@ Route::middleware('auth')->group(function () {
     Route::get(
         '/admin/accreditations/{id}/edit',
         [AdminAcreditationController::class, 'edit']
-    );
+    )->name('accreditation.edit');
 
     Route::get(
         '/admin/accreditations/{id}',
         [AdminAcreditationController::class, 'show']
-    );
+    )->name('accreditation.show');
 
     Route::put(
         '/admin/accreditations/{id}',
@@ -234,5 +232,22 @@ Route::middleware(['auth'])->group(function () {
         ->name('subparameters.delete');
 
 });
+
+Route::middleware(['auth'])->group(function () {
+    Route::post(
+        '/admin/areas/assign-users',
+        [AdminAcreditationController::class, 'assignUsersToArea']
+    )->name('areas.assign.users');
+    
+    Route::delete(
+        'assignments/unassign/{assignment}',
+        [AssignmentController::class, 'destroy']
+    )->name('assignments.unassign');
+});
+
+// Route for global search
+Route::get('/global-search', [SearchController::class, 'global'])
+    ->name('global.search')
+    ->middleware('auth');
 
 require __DIR__ . '/auth.php';

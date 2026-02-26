@@ -1,7 +1,7 @@
 @extends('admin.layouts.master')
 @section('contents')
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fomantic-ui/2.9.2/semantic.min.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/2.3.5/css/dataTables.semanticui.css">
+<link rel="stylesheet" href="{{ asset('assets/css/semantic.min.css') }}">
+<link rel="stylesheet" href="{{ asset('assets/css/data-tables.semanticui.css') }}">
 
 <style>
 /* ================= TAG INPUT ================= */
@@ -23,9 +23,7 @@
 
 <div class="container-xxl container-p-y">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4>
-            <span class="text-muted fw-light"></span> Accreditation
-        </h4>
+        <h2 class="mb-4 fw-bold">Accreditation</h2>
         @if($isAdmin)
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAccreditationModal">
             <i class="bx bx-plus"></i> Add Accreditation
@@ -323,7 +321,7 @@ function accreditationRow(info) {
                 <span class="badge bg-label-primary">${info.programs.length} Programs</span>
             </td>
             <td>
-                <span class="badge bg-label-success me-1">Active</span>
+                <span class="badge bg-label-success me-1">${info.status}</span>
             </td>
             <td>
                 <div class="dropdown">
@@ -473,23 +471,42 @@ function fetchAccreditations() {
     $.get("{{ route('admin.accreditations.data') }}", function (data) {
         const tbody = $('#accreditationTable tbody');
         tbody.empty();
+
+        let hasOngoing = false;
+
         data.forEach(body => {
             body.accreditation_infos.forEach(info => {
+                if (info.status !== 'ongoing') return; // Skip completed programs
+                hasOngoing = true;
+
                 tbody.append(accreditationRow(info));
                 const child = $(programChildRow(info)).hide();
                 tbody.append(child);
+
                 tbody.find(`tr[data-id="${info.id}"] .expand-programs`).on('click', function(e) {
-    e.preventDefault();
+                    e.preventDefault();
 
-    // Close all other program rows
-    tbody.find('.program-child').not(child).hide();
+                    // Close all other program rows
+                    tbody.find('.program-child').not(child).hide();
 
-    // Toggle current one
-    child.toggle();
-});
-
+                    // Toggle current one
+                    child.toggle();
+                });
             });
         });
+
+        // If no ongoing accreditations, show empty state row
+        if (!hasOngoing) {
+            tbody.append(`
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                        <i class="bx bx-info-circle bx-lg mb-2"></i>
+                        <div>No ongoing accreditations yet.</div>
+                        ${isAdmin ? '<small>Click "Add Accreditation" to create one.</small>' : ''}
+                    </td>
+                </tr>
+            `);
+        }
     });
 }
 

@@ -83,6 +83,7 @@ class AppServiceProvider extends ServiceProvider
                 $view->with([
                     'switchableRoles' => $switchableRoles,
                     'currentRole' => $currentRole,
+                    'user' => $user
                 ]);
             }
         });

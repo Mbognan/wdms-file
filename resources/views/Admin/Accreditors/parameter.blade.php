@@ -61,61 +61,124 @@
 
     <div class="container-xxl container-p-y">
 
-        {{-- BACK --}}
-        <div class="mb-3">
-            <a href="{{ url()->previous() }}" class="btn btn-sm btn-outline-secondary">← Back to Areas</a>
+        {{-- HEADER WITH BACK BUTTON --}}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0">{{ $programArea->area->area_name }}</h4>
+            <a href="{{ url()->previous() }}" class="btn btn-secondary">
+                <i class="bx bx-arrow-back me-1"></i> Back
+            </a>
         </div>
-
-        {{-- AREA HEADER --}}
-        <h4 class="fw-bold mb-1">{{ $programArea->area->area_name }}</h4>
-        <p class="text-muted mb-4">AREA</p>
 
         {{-- ASSIGNED USERS --}}
         @if (!$isAccreditor)
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h6 class="fw-bold mb-3">
-                        Assigned
-                        {{ $isAdmin || $isIA ? 'Internal Assessors' : 'Task Forces' }}
-                    </h6>
-                    <div class="users-grid">
-                        @foreach ($assignments as $assignment)
-                            <div class="user-box">
-                                <div class="user-avatar">
-                                    {{ strtoupper(substr($assignment->user->name, 0, 2)) }}
+        <div class="card mb-4">
+            <div class="card-body">
+
+                {{-- ===== INTERNAL ASSESSORS (Admin sees this) ===== --}}
+                @if ($isAdmin || $isIA)
+                    <h6 class="fw-bold mb-3">Internal Assessors</h6>
+
+                    @if ($internalAssessors->isEmpty())
+                        <div class="text-center py-3 text-muted">
+                            No assigned Internal Assessors yet.
+                            @if ($isAdmin)
+                                <div class="mt-2">
+                                    <button class="btn btn-primary btn-sm"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#assignUserModal">
+                                        <i class="bx bx-user-plus me-1"></i> Assign Internal Assessor
+                                    </button>
                                 </div>
-
-                                <div class="user-name">
-                                    {{ $assignment->user->name }}
-                                    {{ $loggedInUser->id === $assignment->user->id ? '(You)' : '' }}
-                                </div>
-
-                                <div class="user-name text-primary">
-                                    <div class="user-name justify-content-between align-items-center">
-                                        @if($isDean || $isTaskForce)
-                                            {{-- Show role as badge for Dean / Task Force --}}
-                                            <span class="badge bg-label-primary mb-2">
-                                                {{ strtoupper($assignment->role?->value ?? 'MEMBER') }}
-                                            </span>
-                                        @endif
-
-                                        @if($isAdmin || $isDean)
-                                            {{-- Unassign button --}}
-                                            <form action="#" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to unassign {{ $assignment->user->name }}?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger d-flex align-items-center mt-2">
-                                                    <i class="bx bx-user-x me-1"></i> Unassign
-                                                </button>
-                                            </form>
+                            @endif
+                        </div>
+                    @else
+                        <div class="users-grid">
+                            @foreach ($internalAssessors as $assignment)
+                                <div class="user-box text-center">
+                                    <div class="user-avatar mx-auto mb-2">
+                                        {{ strtoupper(substr($assignment->user->name, 0, 2)) }}
+                                    </div>
+                                    <div class="fw-semibold">
+                                        {{ $assignment->user->name }}
+                                        @if ($loggedInUser->id === $assignment->user->id)
+                                            <span class="text-muted">(You)</span>
                                         @endif
                                     </div>
+                                    @if ($isAdmin)
+                                        <div class="mt-2">
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger unassign-btn"
+                                                    data-id="{{ $assignment->id }}"
+                                                    data-name="{{ $assignment->user->name }}">
+                                                <i class="bx bx-user-x me-1"></i> Unassign
+                                            </button>
+                                        </div>
+                                    @endif
                                 </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                @endif
+
+                {{-- ===== DIVIDER (only when both are visible — future proofing) ===== --}}
+                @if (($isAdmin || $isIA) && ($isDean || $isTaskForce))
+                    <hr class="my-4">
+                @endif
+
+                {{-- ===== TASK FORCES (Dean / Task Force sees this) ===== --}}
+                @if ($isDean || $isTaskForce)
+                    <h6 class="fw-bold mb-3">Task Forces</h6>
+
+                    @if ($taskForces->isEmpty())
+                        <div class="text-center py-3 text-muted">
+                            No assigned Task Forces yet.
+                            @if ($isDean)
+                                <div class="mt-2">
+                                    <button class="btn btn-primary btn-sm"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#assignUserModal">
+                                        <i class="bx bx-user-plus me-1"></i> Assign Task Force
+                                    </button>
+                                </div>
+                            @endif
+                        </div>
+                    @else
+                        <div class="users-grid">
+                            @foreach ($taskForces as $assignment)
+                                <div class="user-box text-center">
+                                    <div class="user-avatar mx-auto mb-2">
+                                        {{ strtoupper(substr($assignment->user->name, 0, 2)) }}
+                                    </div>
+                                    <div class="fw-semibold">
+                                        {{ $assignment->user->name }}
+                                        @if ($loggedInUser->id === $assignment->user->id)
+                                            <span class="text-muted">(You)</span>
+                                        @endif
+                                    </div>
+                                    {{-- Role badge: Chair / Member --}}
+                                    <div class="mt-1">
+                                        <span class="badge bg-label-{{ $assignment->role?->value === 'chair' ? 'warning' : 'primary' }}">
+                                            {{ strtoupper($assignment->role?->value ?? 'MEMBER') }}
+                                        </span>
+                                    </div>
+                                    @if ($isDean)
+                                        <div class="mt-2">
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger unassign-btn"
+                                                    data-id="{{ $assignment->id }}"
+                                                    data-name="{{ $assignment->user->name }}">
+                                                <i class="bx bx-user-x me-1"></i> Unassign
+                                            </button>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                @endif
+
             </div>
+        </div>
         @endif
 
         {{-- PARAMETERS CARD --}}
@@ -225,7 +288,16 @@
                                             No sub-parameters available.
                                         </div>
                                     @endif
-
+                                    
+                                    @if($isAdmin)
+                                        <div class="d-flex justify-content-end mt-3">
+                                            <button class="btn btn-sm btn-outline-primary add-subparam-direct-btn"
+                                                    data-parameter-id="{{ $parameter->id }}">
+                                                <i class="bx bx-plus-circle me-1"></i>
+                                                Add Sub-Parameter
+                                            </button>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -235,13 +307,47 @@
                         </div>
 
                     @endforelse
-
                 </div>
             </div>
         </div>
-
-
     </div>
+
+    {{-- ================= UNASSIGN USER MODAL ================= --}}
+    <div class="modal fade" id="unassignModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Unassign User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p>
+                        Are you sure you want to unassign 
+                        <strong id="unassignUserName"></strong>?
+                    </p>
+                </div>
+
+                <div class="modal-footer">
+                    <form id="unassignForm" method="POST">
+                        @csrf
+                        @method('DELETE')
+
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                            Cancel
+                        </button>
+
+                        <button type="submit" class="btn btn-danger">
+                            Yes, Unassign
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
     {{-- ================= ADD PARAMETERS + SUB-PARAMETERS MODAL ================= --}}
     <div class="modal fade" id="addParameterModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -466,6 +572,23 @@ $(function () {
                 </button>
             </div>
         `);
+    });
+
+    // ================= UNASSIGN USER MODAL =================
+    $(document).on('click', '.unassign-btn', function () {
+
+        const assignmentId = $(this).data('id');
+        const userName = $(this).data('name');
+
+        // Set modal text
+        $('#unassignUserName').text(userName);
+
+        // Set form action dynamically
+        const actionUrl = "{{ url('assignments/unassign') }}/" + assignmentId;
+        $('#unassignForm').attr('action', actionUrl);
+
+        // Show modal
+        $('#unassignModal').modal('show');
     });
 
     // =====================================================

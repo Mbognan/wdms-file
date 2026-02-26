@@ -18,12 +18,12 @@
 
     {{-- ================= HEADER ================= --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4>
+        <h2>
             <a href="{{ route('admin.accreditation.index') }}">
                 <span class="text-muted fw-light">Accreditation</span>
             </a>
             / View Details
-        </h4>
+        </h2>
 
         <div class="d-flex gap-2">
             @if ($isAdmin)
@@ -149,16 +149,17 @@
                                 {{-- PROGRAM LIST --}}
                                 <div class="list-group list-group-flush">
                                     @foreach($items as $mapping)
-                                        <a href="{{ route('admin.accreditations.program', [
+                                        <div class="list-group-item d-flex justify-content-between align-items-center program-row">
+                                            <a href="{{ route('admin.accreditations.program', [
                                                 'infoId' => $accreditation->id,
                                                 'levelId' => $level->id,
                                                 'programName' => $mapping->program->program_name
                                             ]) }}"
-                                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center program-row"
                                             title="View Areas">
                                             
-                                            <span>{{ $mapping->program->program_name }}</span>
-
+                                                <span>{{ $mapping->program->program_name }}</span>
+                                            </a>
+                                            
                                             <div class="d-flex gap-2">
                                                 @if ($isAdmin)
                                                     <button class="btn btn-xs btn-outline-primary edit-program-btn"
@@ -166,6 +167,7 @@
                                                             data-mapping-id="{{ $mapping->id }}"
                                                             data-current-name="{{ $mapping->program->program_name }}">
                                                         <i class="bx bx-edit"></i>
+                                                        Edit
                                                     </button>
 
                                                     <button type="button"
@@ -174,10 +176,11 @@
                                                             data-mapping-id="{{ $mapping->id }}"
                                                             data-program-name="{{ $mapping->program->program_name }}">
                                                         <i class="bx bx-trash"></i>
+                                                        Delete
                                                     </button>
                                                 @endif
                                             </div>
-                                        </a>
+                                        </div>
                                     @endforeach
                                 </div>
 
@@ -424,12 +427,14 @@ $(document).ready(function () {
                                     data-mapping-id="${res.data.mapping_id}"
                                     data-current-name="${res.data.program_name}">
                                 <i class="bx bx-edit"></i>
+                                Edit
                             </button>
 
                             <button class="btn btn-xs btn-outline-danger delete-program-btn"
                                     data-mapping-id="${res.data.mapping_id}"
                                     data-program-name="${res.data.program_name}">
                                 <i class="bx bx-trash"></i>
+                                Delete
                             </button>
                         </div>
                     </div>
@@ -497,6 +502,15 @@ $(document).ready(function () {
         $('#deleteProgramMappingId').val($(this).data('mapping-id'));
         $('#deleteProgramName').text($(this).data('program-name'));
         $('#deleteProgramModal').modal('show');
+    });
+
+    $(document).on('click', '.edit-program-btn, .delete-program-btn', function (e) {
+        e.stopPropagation(); // prevent parent <a> click
+    });
+
+    $(document).on('click', '.program-row', function () {
+        const link = $(this).find('a').attr('href');
+        if(link) window.location.href = link;
     });
 
     // ================= CONFIRM DELETE PROGRAM =================

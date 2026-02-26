@@ -9,11 +9,10 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
 <div class="container-xxl flex-grow-1 container-p-y bg-footer-theme">
+    <h2 class="fw-bold">
+        Role Requests
+    </h2>
     <div class="card">
-        <div class="card-header">
-            <h5>Pending Role Requests</h5>
-        </div>
-
         <div class="card-body">
             <table id="role-requests-table" class="table table-bordered w-100">
               <thead>

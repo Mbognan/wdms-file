@@ -3,7 +3,7 @@
 @section('contents')
     <div class="container-xxl flex-grow-1 container-p-y">
 
-        <h4 class="fw-bold py-3 mb-4">Internal Accreditation Overview</h4>
+        <h2 class="fw-bold py-3 mb-4">Accreditation Overview</h2>
 
         @if (empty($data))
             <p class="text-muted">No ongoing accreditations available.</p>
@@ -18,11 +18,18 @@
                         @forelse($levelInfo['programs'] as $program)
                             @php
                                 $progressColor =
-                                    $program['progress'] == 100
+                                    $program['progress'] >= 100
                                         ? 'bg-success'
                                         : ($program['progress'] > 0
                                             ? 'bg-warning'
                                             : 'bg-secondary');
+
+                                $statusColor =
+                                    $program['accreditation_status_label'] === 'Completed'
+                                        ? 'text-success'
+                                        : ($program['accreditation_status_label'] === 'Ongoing'
+                                            ? 'text-warning'
+                                            : 'text-secondary');
                             @endphp
 
                             <div class="col-md-4">
@@ -38,9 +45,18 @@
                                                 Accreditation: {{ $program['accreditation_title'] }}
                                             </p>
 
-                                            <p class="small fw-semibold text-info mb-3">
-                                                Accreditation Status:
-                                                <span class="text-dark">
+                                            <p class="small fw-semibold mb-3">
+                                                Evaluation Status:
+                                                @php
+                                                    $badgeClass =
+                                                        $program['accreditation_status_label'] === 'Completed'
+                                                            ? 'bg-success'
+                                                            : ($program['accreditation_status_label'] === 'Ongoing'
+                                                                ? 'bg-warning text-dark'
+                                                                : 'bg-secondary');
+                                                @endphp
+
+                                                <span class="badge {{ $badgeClass }}">
                                                     {{ $program['accreditation_status_label'] }}
                                                 </span>
                                             </p>

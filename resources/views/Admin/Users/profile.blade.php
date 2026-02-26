@@ -4,6 +4,7 @@
 
 @php
     use App\Enums\UserType;
+    use App\Enums\UserStatus;
 
     $userType = $user->user_type;
 
@@ -11,6 +12,8 @@
         UserType::ADMIN,
         UserType::ACCREDITOR
     ]);
+
+    $active = $user->status === UserStatus::ACTIVE->value;
 @endphp
 
 <div class="container py-5">
@@ -89,7 +92,7 @@
         </div>
     </div>
 
-    @if($requestableRoles->count() > 0)
+    @if($requestableRoles->count() > 0 && $active)
     {{-- REQUEST ADDITIONAL ROLE --}}
     <div class="card shadow-sm mb-5">
         <h5 class="card-header">Request Additional Role</h5>

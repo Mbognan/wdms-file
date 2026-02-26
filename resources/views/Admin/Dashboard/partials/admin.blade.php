@@ -8,9 +8,19 @@
         <div class="col-md-3 mb-4">
             <div class="card shadow-sm border-0">
                 <div class="card-body">
-                    <h6 class="text-muted">Total Users</h6>
+                    <h6 class="text-muted">Total Assessors and Accreditors</h6>
                     <h3 class="fw-bold">128</h3>
                     <small class="text-success">+12 this month</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h6 class="text-muted">Ongoing Accreditations</h6>
+                    <h3 class="fw-bold text-warning">3</h3>
+                    <small>Visit scheduled this March</small>
                 </div>
             </div>
         </div>
@@ -25,15 +35,7 @@
             </div>
         </div>
 
-        <div class="col-md-3 mb-4">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <h6 class="text-muted">Ongoing Accreditations</h6>
-                    <h3 class="fw-bold text-warning">3</h3>
-                    <small>Visit scheduled this March</small>
-                </div>
-            </div>
-        </div>
+        
 
         <div class="col-md-3 mb-4">
             <div class="card shadow-sm border-0">
@@ -79,16 +81,16 @@
         </div>
         <div class="card-body">
 
-            <a href="#" class="btn btn-primary me-2">
-                Manage Users
+            <a href="{{ route('users.index') }}" class="btn btn-outline-secondary me-2">
+                View Pending Accounts
             </a>
 
-            <a href="#" class="btn btn-outline-secondary me-2">
-                Create Accreditation
+            <a href="{{ route('users.taskforce.index') }}" class="btn btn-primary me-2">
+                View Active Accounts
             </a>
 
-            <a href="#" class="btn btn-outline-success">
-                Generate Reports
+            <a href="{{ route('program.areas.evaluations') }}" class="btn btn-outline-success">
+                View Assessor's Evaluations
             </a>
 
         </div>
