@@ -403,8 +403,7 @@ class AccreditationEvaluationController extends Controller
 
             $isOwnEvaluation = $evaluation->evaluated_by === $user->id;
 
-            $isInternalAssessorEvaluation =
-                $evaluation->evaluator->user_type === UserType::INTERNAL_ASSESSOR;
+            $isInternalAssessorEvaluation = $evaluation->role_id === $internalAssessorRoleId; // ← fixed
 
             if (! $isOwnEvaluation && ! $isInternalAssessorEvaluation) {
                 abort(403, 'You are not allowed to view this evaluation.');
@@ -541,7 +540,7 @@ class AccreditationEvaluationController extends Controller
             ->orderBy('id', 'asc')
             ->first();
 
-        // 9. Render immutable summary view
+        // Render immutable summary view
         return view('admin.accreditors.show-evaluation', compact(
            'evaluation',
             'area',

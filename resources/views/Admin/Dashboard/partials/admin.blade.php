@@ -14,13 +14,13 @@
         <div class="col-6 col-md-3">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-body d-flex align-items-center gap-3">
-                    <div class="rounded-3 p-2 bg-primary bg-opacity-10 text-primary fs-4 d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
+                    <div class="rounded-3 p-2 bg-success bg-opacity-10 text-primary fs-4 d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
                         <i class="bx bx-group"></i>
                     </div>
                     <div>
                         <p class="text-muted mb-0" style="font-size:.75rem;">Assessors & Accreditors</p>
                         <h4 class="fw-bold mb-0">{{ $totalAssessorsAccreditors }}</h4>
-                        <small class="text-muted">Registered users</small>
+                        <small class="text-muted">Active users</small>
                     </div>
                 </div>
             </div>
@@ -92,7 +92,7 @@
                         <h6 class="fw-semibold mb-0">
                             {{ $ongoingAccreditation->title }} {{ $ongoingAccreditation->year }}
                         </h6>
-                        <small class="text-muted">Click an area to view its evaluations</small>
+                        <small class="text-muted">{{ $levelName }} · Click an area to view its evaluations</small>
                     </div>
                     <span class="badge bg-warning text-dark">Ongoing</span>
                 </div>
@@ -141,10 +141,10 @@
                                             </p>
                                             <small class="text-muted">
                                                 <i class="bx bx-user me-1"></i>
-                                                @if($item['evaluators'] > 0)
-                                                    {{ $item['evaluators'] }} evaluator{{ $item['evaluators'] > 1 ? 's' : '' }}
+                                                @if($item['assigned_count'] > 0)
+                                                    {{ $item['assigned_count'] }} assessor{{ $item['assigned_count'] > 1 ? 's' : '' }} assigned
                                                 @else
-                                                    No evaluator yet
+                                                    No assessor assigned yet
                                                 @endif
                                             </small>
                                         </div>
@@ -170,7 +170,7 @@
         <div class="col-lg-7">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-white fw-semibold">Recent Activities</div>
-                <div class="card-body p-0">
+                <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
                     <ul class="list-group list-group-flush">
                         @forelse($recentEvaluations as $act)
                             <li class="list-group-item d-flex align-items-center gap-3 py-3">
