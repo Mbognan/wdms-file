@@ -1,19 +1,6 @@
 @extends('admin.layouts.master')
 
 @section('contents')
-<style>
-    .program-row {
-        cursor: pointer;
-        transition: all 0.2s ease-in-out;
-    }
-
-    .program-row:hover {
-        background-color: #f8f9fa; /* light gray hover */
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-        transform: translateY(-1px);
-        text-decoration: none;
-    }
-</style>
 <div class="container-xxl container-p-y">
 
     {{-- ================= HEADER ================= --}}

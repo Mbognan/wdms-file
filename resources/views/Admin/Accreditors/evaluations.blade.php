@@ -33,9 +33,7 @@
             $first = $group->first();
 
             // Only internal assessor evaluations
-            $internal = $group->filter(
-                fn ($e) => $e->evaluator->user_type === UserType::INTERNAL_ASSESSOR
-            );
+            $internal = $group->filter(fn ($e) => $e->role_id === $internalAssessorRoleId);
 
             // Group recommendations by area
             $areaGroups = $internal->flatMap(fn ($e) => 

@@ -1,63 +1,6 @@
 @extends('admin.layouts.master')
 
 @section('contents')
-    <style>
-        /* ================= USERS GRID ================= */
-        .users-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 16px;
-            text-align: center;
-        }
-
-        .user-box {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .user-avatar {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: #e5e7eb;
-            color: #1e40af;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 6px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, .15);
-        }
-
-        .user-name {
-            font-size: 13px;
-            font-weight: 500;
-        }
-
-        /* ================= PARAMETER BLOCK ================= */
-        .parameter-block {
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 12px;
-        }
-
-        .parameter-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-
-        .subparams-container {
-            padding-left: 20px;
-        }
-
-        .input-group .btn {
-            width: 36px;
-        }
-    </style>
 
     <div class="container-xxl container-p-y">
 
@@ -75,45 +18,57 @@
             <div class="card-body">
 
                 {{-- ===== INTERNAL ASSESSORS (Admin sees this) ===== --}}
+                {{-- ===== INTERNAL ASSESSORS ===== --}}
                 @if ($isAdmin || $isIA)
-                    <h6 class="fw-bold mb-3">Internal Assessors</h6>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0">
+                            <i class="bx bx-user-check me-2 text-primary"></i>Internal Assessors
+                        </h6>
+                        @if ($isAdmin)
+                            <button class="btn btn-primary btn-sm"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#assignUserModal">
+                                <i class="bx bx-user-plus me-1"></i> Assign
+                            </button>
+                        @endif
+                    </div>
 
                     @if ($internalAssessors->isEmpty())
-                        <div class="text-center py-3 text-muted">
-                            No assigned Internal Assessors yet.
-                            @if ($isAdmin)
-                                <div class="mt-2">
-                                    <button class="btn btn-primary btn-sm"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#assignUserModal">
-                                        <i class="bx bx-user-plus me-1"></i> Assign Internal Assessor
-                                    </button>
-                                </div>
-                            @endif
+                        <div class="empty-state">
+                            <i class="bx bx-user-x"></i>
+                            No Internal Assessors assigned yet.
                         </div>
                     @else
-                        <div class="users-grid">
+                        <div class="tf-grid">
                             @foreach ($internalAssessors as $assignment)
-                                <div class="user-box text-center">
-                                    <div class="user-avatar mx-auto mb-2">
-                                        {{ strtoupper(substr($assignment->user->name, 0, 2)) }}
-                                    </div>
-                                    <div class="fw-semibold">
-                                        {{ $assignment->user->name }}
-                                        @if ($loggedInUser->id === $assignment->user->id)
-                                            <span class="text-muted">(You)</span>
+                                @php $isYou = $loggedInUser->id === $assignment->user->id; @endphp
+
+                                <div class="tf-card {{ $isYou ? 'is-you' : '' }}">
+
+                                    <x-initials-avatar
+                                        :user="$assignment->user"
+                                        size="sm"
+                                        shape="circle" />
+
+                                    <div class="tf-info">
+                                        <div class="tf-name" title="{{ $assignment->user->name }}">
+                                            {{ $assignment->user->name }}
+                                        </div>
+                                        @if ($isYou)
+                                            <div class="tf-you-label">You</div>
                                         @endif
                                     </div>
+
                                     @if ($isAdmin)
-                                        <div class="mt-2">
-                                            <button type="button"
-                                                    class="btn btn-sm btn-outline-danger unassign-btn"
-                                                    data-id="{{ $assignment->id }}"
-                                                    data-name="{{ $assignment->user->name }}">
-                                                <i class="bx bx-user-x me-1"></i> Unassign
-                                            </button>
-                                        </div>
+                                        <button type="button"
+                                                class="tf-unassign unassign-btn"
+                                                data-id="{{ $assignment->id }}"
+                                                data-name="{{ $assignment->user->name }}"
+                                                title="Unassign {{ $assignment->user->name }}">
+                                            <i class="bx bx-x"></i>
+                                        </button>
                                     @endif
+
                                 </div>
                             @endforeach
                         </div>
@@ -143,34 +98,43 @@
                             @endif
                         </div>
                     @else
-                        <div class="users-grid">
+                        <div class="tf-grid">
                             @foreach ($taskForces as $assignment)
-                                <div class="user-box text-center">
-                                    <div class="user-avatar mx-auto mb-2">
-                                        {{ strtoupper(substr($assignment->user->name, 0, 2)) }}
-                                    </div>
-                                    <div class="fw-semibold">
-                                        {{ $assignment->user->name }}
-                                        @if ($loggedInUser->id === $assignment->user->id)
-                                            <span class="text-muted">(You)</span>
+                                @php
+                                    $isChair = $assignment->role?->value === 'chair';
+                                    $isYou   = $loggedInUser->id === $assignment->user->id;
+                                @endphp
+
+                                <div class="tf-card {{ $isYou ? 'is-you' : '' }}">
+
+                                    <x-initials-avatar
+                                        :user="$assignment->user"
+                                        size="sm"
+                                        shape="circle"
+                                        :role="$assignment->role?->value" />
+
+                                    <div class="tf-info">
+                                        <div class="tf-name" title="{{ $assignment->user->name }}">
+                                            {{ $assignment->user->name }}
+                                        </div>
+                                        @if ($isYou)
+                                            <div class="tf-you-label">You</div>
                                         @endif
-                                    </div>
-                                    {{-- Role badge: Chair / Member --}}
-                                    <div class="mt-1">
-                                        <span class="badge bg-label-{{ $assignment->role?->value === 'chair' ? 'warning' : 'primary' }}">
+                                        <span class="tf-role-badge {{ $isChair ? 'chair' : 'member' }}">
                                             {{ strtoupper($assignment->role?->value ?? 'MEMBER') }}
                                         </span>
                                     </div>
+
                                     @if ($isDean)
-                                        <div class="mt-2">
-                                            <button type="button"
-                                                    class="btn btn-sm btn-outline-danger unassign-btn"
-                                                    data-id="{{ $assignment->id }}"
-                                                    data-name="{{ $assignment->user->name }}">
-                                                <i class="bx bx-user-x me-1"></i> Unassign
-                                            </button>
-                                        </div>
+                                        <button type="button"
+                                                class="tf-unassign unassign-btn"
+                                                data-id="{{ $assignment->id }}"
+                                                data-name="{{ $assignment->user->name }}"
+                                                title="Unassign {{ $assignment->user->name }}">
+                                            <i class="bx bx-x"></i>
+                                        </button>
                                     @endif
+
                                 </div>
                             @endforeach
                         </div>
@@ -318,7 +282,7 @@
             <div class="modal-content">
 
                 <div class="modal-header">
-                    <h5 class="modal-title">Unassign User</h5>
+                    <h5 class="modal-title fw-bold">Unassign</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 

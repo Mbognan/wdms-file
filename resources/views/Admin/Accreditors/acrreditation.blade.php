@@ -3,24 +3,6 @@
 <link rel="stylesheet" href="{{ asset('assets/css/semantic.min.css') }}">
 <link rel="stylesheet" href="{{ asset('assets/css/data-tables.semanticui.css') }}">
 
-<style>
-/* ================= TAG INPUT ================= */
-.tag-input { border: 1px solid #d1d5db; border-radius: 6px; padding: 8px; background: #fff; }
-.tags { display: flex; flex-wrap: wrap; gap: 8px; max-height: 80px; overflow-y: auto; margin-bottom: 6px; }
-.tag-input input { border: none; outline: none; width: 100%; padding: 6px; }
-.tag { display: inline-flex; align-items: center; gap: 6px; background: #eef2ff; color: #1e40af; padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 500; }
-.tag button { background: none; border: none; cursor: pointer; font-size: 14px; color: #1e40af; }
-.tag button:hover { color: #dc2626; }
-.program-card { position: relative; overflow: hidden; border-radius: 14px; transition: all 0.25s ease; }
-.program-card:hover { transform: translateY(-4px); }
-.program-card .card-icon-bg { position: absolute; right: -20px; bottom: -20px; font-size: 120px; opacity: 0.12; color: #ffffff; pointer-events: none; }
-.program-card .program-header { position: relative; z-index: 2; padding: 18px 12px; font-weight: 600; font-size: 1rem; }
-.program-card .status-badge { margin-top: 10px; }
-/* Clickable accreditation row */
-.accred-row { cursor: pointer; transition: background-color 0.2s ease; }
-.accred-row:hover { background-color: #f0f0f0; /* Slightly darker on hover */ }
-</style>
-
 <div class="container-xxl container-p-y">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-4 fw-bold">Accreditation</h2>

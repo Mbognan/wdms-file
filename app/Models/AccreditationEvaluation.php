@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\EvaluationStatus;
+use App\Models\ADMIN\Area;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\ADMIN\AccreditationInfo;
@@ -21,6 +22,7 @@ class AccreditationEvaluation extends Model
         'program_id',
         'area_id',
         'evaluated_by',
+        'role_id',
         'status'
     ];
 
@@ -37,6 +39,11 @@ class AccreditationEvaluation extends Model
     public function program()
     {
         return $this->belongsTo(Program::class, 'program_id');
+    }
+
+    public function area()
+    {
+        return $this->belongsTo(Area::class, 'area_id');
     }
 
     public function evaluator()

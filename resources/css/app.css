@@ -3,7 +3,6 @@
 @tailwind utilities;
 
 
-
 .btn.btn-primary,
 .btn-primary:not(.disabled):not(:disabled) {
   background-color: #028313ff !important;

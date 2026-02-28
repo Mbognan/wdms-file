@@ -3,12 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Enums\AccreditationStatus;
+use App\Models\AccreditationEvaluation;
+use App\Models\ADMIN\AccreditationDocuments;
 use App\Models\ADMIN\AccreditationInfo;
-use App\Models\ADMIN\Area;
 use App\Models\ADMIN\AreaParameterMapping;
 use App\Models\ADMIN\InfoLevelProgramMapping;
-use App\Models\ADMIN\Parameter;
-use App\Models\ADMIN\Program;
 use App\Models\ADMIN\ProgramAreaMapping;
 use App\Models\ADMIN\SubParameter;
 use App\Models\Role;
@@ -38,7 +37,9 @@ class SearchController extends Controller
             ->merge($this->searchPrograms($query, $scopedAreaIds))
             ->merge($this->searchAreas($query, $scopedAreaIds))
             ->merge($this->searchParameters($query, $scopedAreaIds))
-            ->merge($this->searchSubParameters($query, $scopedAreaIds));
+            ->merge($this->searchSubParameters($query, $scopedAreaIds))
+            ->merge($this->searchDocuments($query, $scopedAreaIds))
+            ->merge($this->searchEvaluations($query, $scopedAreaIds));
 
         return response()->json($results->take(30)->values());
     }
@@ -453,7 +454,6 @@ class SearchController extends Controller
     // -------------------------------------------------------------------------
     // Sub-parameter search
     // -------------------------------------------------------------------------
-
     private function searchSubParameters(string $query, ?array $scopedAreaIds): Collection
     {
         return AreaParameterMapping::with([
@@ -527,6 +527,197 @@ class SearchController extends Controller
     }
 
     // -------------------------------------------------------------------------
+    // Documents search
+    // -------------------------------------------------------------------------
+    private function searchDocuments(string $query, ?array $scopedAreaIds): Collection
+    {
+        return AccreditationDocuments::with([
+                'subParameter',
+                'uploader',
+                'uploaderRole',
+                'accredInfo',
+                'accredInfo.accreditationBody',
+                'level',
+                'program',
+                'area',
+                'parameter',
+            ])
+            ->when($scopedAreaIds !== null, fn($q) =>
+                $q->whereIn('area_id', $scopedAreaIds)
+            )
+            ->where(fn($q) =>
+                $q->where('file_name', 'LIKE', "%{$query}%")
+                ->orWhere('file_type', 'LIKE', "%{$query}%")
+                ->orWhereHas('uploader', fn($q) =>
+                    $q->where('name', 'LIKE', "%{$query}%")
+                    ->orWhere('email', 'LIKE', "%{$query}%")
+                )
+                ->orWhereHas('subParameter', fn($q) =>
+                    $q->where('sub_parameter_name', 'LIKE', "%{$query}%")
+                )
+                ->orWhereHas('area', fn($q) =>
+                    $q->where('area_name', 'LIKE', "%{$query}%")
+                )
+                ->orWhereHas('parameter', fn($q) =>
+                    $q->where('parameter_name', 'LIKE', "%{$query}%")
+                )
+                ->orWhereHas('accredInfo', fn($q) =>
+                    $q->where('title', 'LIKE', "%{$query}%")
+                    ->orWhereHas('accreditationBody', fn($q) =>
+                        $q->where('name', 'LIKE', "%{$query}%")
+                    )
+                )
+                ->orWhereHas('program', fn($q) =>
+                    $q->where('program_name', 'LIKE', "%{$query}%")
+                )
+            )
+            ->limit(10)
+            ->get()
+            ->map(fn(AccreditationDocuments $d) => $this->item(
+                type:       'document',
+                id:         $d->id,
+                title:      $d->file_name,
+                subtitle:   ($d->parameter?->parameter_name ?? 'No Parameter')
+                            . ' · ' . ($d->subParameter?->sub_parameter_name ?? 'No Sub-Parameter')
+                            . ' · ' . ($d->program?->program_name ?? 'No Program'),
+                badge:      $d->file_type ?? 'File',
+                badgeColor: $this->documentTypeColor($d->file_type),
+                url:        route('subparam.uploads.index', [
+                                'infoId'        => $d->accred_info_id,
+                                'levelId'       => $d->level_id,
+                                'programId'     => $d->program_id,
+                                'programAreaId' => $d->area_id,
+                                'subParameter'  => $d->subparameter_id,
+                            ]),
+                icon:       $this->documentIcon($d->file_type),
+                meta: [
+                    'file_name'     => $d->file_name,
+                    'file_type'     => $d->file_type,
+                    'file_path'     => $d->file_path,
+                    'uploaded_at'   => $d->created_at?->format('M d, Y'),
+                    'uploader'      => [
+                        'id'    => $d->uploader?->id,
+                        'name'  => $d->uploader?->name,
+                        'email' => $d->uploader?->email,
+                        'role'  => $d->uploaderRole?->name,
+                    ],
+                    'sub_parameter' => [
+                        'id'   => $d->subParameter?->id,
+                        'name' => $d->subParameter?->sub_parameter_name,
+                    ],
+                    'parameter'     => [
+                        'id'   => $d->parameter?->id,
+                        'name' => $d->parameter?->parameter_name,
+                    ],
+                    'area'          => [
+                        'id'   => $d->area?->id,
+                        'name' => trim(explode(':', $d->area?->area_name ?? '')[0]),
+                    ],
+                    'program'       => [
+                        'id'   => $d->program?->id,
+                        'name' => $d->program?->program_name,
+                    ],
+                    'level'         => [
+                        'id'   => $d->level?->id,
+                        'name' => $d->level?->level_name ?? null,
+                    ],
+                    'accreditation' => [
+                        'id'   => $d->accredInfo?->id,
+                        'name' => $d->accredInfo?->title,
+                        'body' => $d->accredInfo?->accreditationBody?->name,
+                        'year' => $d->accredInfo?->year,
+                    ],
+                ],
+            ));
+    }
+
+    // -------------------------------------------------------------------------
+    // Evaluation search
+    // -------------------------------------------------------------------------
+
+    private function searchEvaluations(string $query, ?array $scopedAreaIds): Collection
+    {
+        return AccreditationEvaluation::with([
+                'accreditationInfo',
+                'accreditationInfo.accreditationBody',
+                'level',
+                'program',
+                'area',
+                'evaluator',
+                'evaluator.currentRole',
+                'subparameterRatings',
+            ])
+            ->when($scopedAreaIds !== null, fn($q) =>
+                $q->whereIn('area_id', $scopedAreaIds)
+            )
+            ->where(fn($q) =>
+                $q->whereHas('evaluator', fn($q) =>
+                    $q->where('name', 'LIKE', "%{$query}%")
+                    ->orWhere('email', 'LIKE', "%{$query}%")
+                )
+                ->orWhereHas('area', fn($q) =>
+                    $q->where('area_name', 'LIKE', "%{$query}%")
+                )
+                ->orWhereHas('program', fn($q) =>
+                    $q->where('program_name', 'LIKE', "%{$query}%")
+                )
+                ->orWhereHas('accreditationInfo', fn($q) =>
+                    $q->where('title', 'LIKE', "%{$query}%")
+                )
+                ->orWhere('status', 'LIKE', "%{$query}%")
+            )
+            ->limit(10)
+            ->get()
+            ->map(fn(AccreditationEvaluation $e) => $this->item(
+                type:       'evaluation',
+                id:         $e->id,
+                title:      trim(explode(':', $e->area?->area_name ?? 'Unknown Area')[0]),
+                subtitle:   ($e->program?->program_name ?? 'Unknown Program')
+                            . ' · ' . ($e->level?->level_name ?? 'No Level')
+                            . ' · ' . ($e->accreditationInfo?->title ?? 'Unknown Accreditation'),
+                badge:      $e->status?->value ?? null,
+                badgeColor: $this->evaluationStatusColor($e->status?->value),
+                url:        route('program.areas.evaluations.summary', [
+                                'evaluation' => $e->id,
+                                'area' => $e->area_id,
+                            ]),
+                icon:       'bxs-notepad',
+                meta: [
+                    'status'        => $e->status?->value,
+                    'is_final'      => $e->is_final,
+                    'is_updated'    => $e->is_updated,
+                    'evaluated_at'  => $e->updated_at?->format('M d, Y'),
+                    'evaluator'     => [
+                        'id'    => $e->evaluator?->id,
+                        'name'  => $e->evaluator?->name,
+                        'email' => $e->evaluator?->email,
+                        'role'  => $e->evaluator?->currentRole?->name,
+                    ],
+                    'area'          => [
+                        'id'   => $e->area?->id,
+                        'name' => trim(explode(':', $e->area?->area_name ?? '')[0]),
+                    ],
+                    'program'       => [
+                        'id'   => $e->program?->id,
+                        'name' => $e->program?->program_name,
+                    ],
+                    'level'         => [
+                        'id'   => $e->level?->id,
+                        'name' => $e->level?->level_name,
+                    ],
+                    'accreditation' => [
+                        'id'   => $e->accreditationInfo?->id,
+                        'name' => $e->accreditationInfo?->title,
+                        'body' => $e->accreditationInfo?->accreditationBody?->name,
+                        'year' => $e->accreditationInfo?->year,
+                    ],
+                    'ratings_count' => $e->subparameterRatings->count(),
+                ],
+            ));
+    }
+
+
+    // -------------------------------------------------------------------------
     // Item builder — single consistent shape for all result types
     // -------------------------------------------------------------------------
 
@@ -561,11 +752,11 @@ class SearchController extends Controller
     private function userUrl(User $u): string
     {
         return match ($u->currentRole?->name) {
-            UserType::INTERNAL_ASSESSOR->value,
-            UserType::TASK_FORCE->value  => route('taskforce.view', $u),
-            UserType::ACCREDITOR->value  => route('taskforce.view', $u),
-            UserType::DEAN->value        => route('taskforce.view', $u),
-            default                      => route('taskforce.show', $u),
+            UserType::INTERNAL_ASSESSOR->value  => route('taskforce.view', $u),
+            UserType::TASK_FORCE->value         => route('taskforce.view', $u),
+            UserType::ACCREDITOR->value         => route('taskforce.view', $u),
+            UserType::DEAN->value               => route('taskforce.view', $u),
+            default                             => route('taskforce.show', $u),
         };
     }
 
@@ -620,5 +811,57 @@ class SearchController extends Controller
         }
 
         return $user->assignments()->pluck('area_id')->unique()->values()->toArray();
+    }
+
+    // -------------------------------------------------------------------------
+    // Document icon / color resolvers
+    // -------------------------------------------------------------------------
+
+    private function documentIcon(?string $fileType): string
+    {
+        if (!$fileType) return 'bx-file';
+
+        $type = strtolower($fileType);
+
+        return match (true) {
+            str_contains($type, 'pdf')                          => 'bxs-file-pdf',
+            str_contains($type, 'word') || $type === 'docx'
+                || $type === 'doc'                              => 'bxs-file-doc',
+            str_contains($type, 'sheet') || $type === 'xlsx'
+                || $type === 'xls' || $type === 'csv'          => 'bxs-spreadsheet',
+            str_contains($type, 'image') || $type === 'png'
+                || $type === 'jpg' || $type === 'jpeg'         => 'bxs-image',
+            str_contains($type, 'zip') || $type === 'rar'      => 'bxs-archive',
+            default                                             => 'bxs-file-blank',
+        };
+    }
+
+    private function documentTypeColor(?string $fileType): string
+    {
+        if (!$fileType) return 'secondary';
+
+        $type = strtolower($fileType);
+
+        return match (true) {
+            str_contains($type, 'pdf')                          => 'danger',
+            str_contains($type, 'word') || $type === 'docx'
+                || $type === 'doc'                              => 'primary',
+            str_contains($type, 'sheet') || $type === 'xlsx'
+                || $type === 'xls' || $type === 'csv'          => 'success',
+            str_contains($type, 'image') || $type === 'png'
+                || $type === 'jpg' || $type === 'jpeg'         => 'warning',
+            str_contains($type, 'zip') || $type === 'rar'      => 'info',
+            default                                             => 'secondary',
+        };
+    }
+
+    private function evaluationStatusColor(?string $status): string
+    {
+        return match ($status) {
+            'draft'     => 'secondary',
+            'updated'   => 'warning',
+            'finalized' => 'success',
+            default     => 'secondary',
+        };
     }
 }
