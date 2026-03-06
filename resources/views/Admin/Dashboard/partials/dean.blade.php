@@ -14,7 +14,7 @@
         <div class="col-6 col-md-3">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-body d-flex align-items-center gap-3">
-                    <div class="rounded-3 p-2 bg-success bg-opacity-10 text-primary fs-4 d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
+                    <div class="rounded-3 p-2 bg-primary bg-opacity-10 text-white fs-4 d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
                         <i class="bx bx-group"></i>
                     </div>
                     <div>
@@ -83,55 +83,97 @@
         </div>
         <div class="card-body">
 
-            @if($ongoingAccreditation)
+            @forelse($accreditationOverviews as $overview)
+                @php $acc = $overview['accreditation']; @endphp
 
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <div>
-                        <h6 class="fw-semibold mb-0">
-                            {{ $ongoingAccreditation->title }} {{ $ongoingAccreditation->year }}
-                        </h6>
-                        <small class="text-muted">{{ $levelName }} · Click an area to view its details</small>
+                <div class="{{ !$loop->last ? 'mb-4 pb-4 border-bottom' : '' }}">
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-semibold mb-0">{{ $acc->title }} {{ $acc->year }}</h6>
+                        <span class="badge bg-warning text-dark">Ongoing</span>
                     </div>
-                    <span class="badge bg-warning text-dark">Ongoing</span>
-                </div>
 
-                <div class="row g-2 mt-2">
-                    @foreach($overviewAreas as $item)
-                        <div class="col-12 col-md-6 col-xl-4">
-                            <a href="{{ route('program.areas.parameters', [
-                                'infoId'        => $item['info_id'],
-                                'levelId'       => $item['level_id'],
-                                'programId'     => $item['program_id'],
-                                'programAreaId' => $item['program_area_id'],
-                            ]) }}" class="text-decoration-none">
-                                <div class="card border h-100 shadow-none"
-                                    onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.08)'; this.style.borderColor='#0d6efd';"
-                                    onmouseout="this.style.boxShadow='none'; this.style.borderColor='#dee2e6';"
-                                    style="transition: box-shadow .15s, border-color .15s;">
-                                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center gap-2">
-                                        <div style="min-width:0;">
-                                            <p class="fw-semibold mb-0 text-truncate text-dark" style="font-size:.83rem;" title="{{ $item['area_name'] }}">
-                                                {{ $item['area_name'] }}
-                                            </p>
-                                            <small class="text-muted">
-                                                <i class="bx bx-user me-1"></i>
-                                                @if($item['assigned_count'] > 0)
-                                                    {{ $item['assigned_count'] }} task force{{ $item['assigned_count'] > 1 ? 's' : '' }} assigned
-                                                @else
-                                                    No task force assigned yet
-                                                @endif
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
+                    @foreach($overview['levels'] as $level)
+
+                        <div class="mb-2">
+                            <span class="text-muted fw-semibold"
+                                  style="font-size:.75rem; text-transform:uppercase; letter-spacing:.05em;">
+                                <i class="bx bx-layer me-1"></i>{{ $level['levelName'] }}
+                            </span>
                         </div>
+
+                        @foreach($level['programs'] as $program)
+                            @php
+                                $pct = $program['totalAreas']
+                                    ? round($program['finalizedAreaCount'] / $program['totalAreas'] * 100)
+                                    : 0;
+                            @endphp
+
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge bg-primary bg-opacity-10 text-white border border-primary border-opacity-25"
+                                      style="font-size:.78rem;">
+                                    <i class="bx bx-book me-1"></i>{{ $program['program_name'] }}
+                                </span>
+                                <small class="text-muted">
+                                    {{ $program['finalizedAreaCount'] }} / {{ $program['totalAreas'] }} Finalized
+                                </small>
+                            </div>
+
+                            <div class="progress mb-3" style="height:5px; border-radius:99px;">
+                                <div class="progress-bar bg-primary" style="width:{{ $pct }}%;"></div>
+                            </div>
+
+                            <div class="row g-2 mb-3">
+                                @foreach($program['areas'] as $item)
+                                    <div class="col-12 col-md-6 col-xl-4">
+                                        <a href="{{ route('program.areas.parameters', [
+                                            'infoId'        => $item['info_id'],
+                                            'levelId'       => $item['level_id'],
+                                            'programId'     => $item['program_id'],
+                                            'programAreaId' => $item['program_area_id'],
+                                        ]) }}" class="text-decoration-none">
+                                            <div class="card border h-100 shadow-none area-card-link">
+                                                <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center gap-2">
+                                                    <div style="min-width:0;">
+                                                        <p class="fw-semibold mb-0 text-truncate text-dark"
+                                                           style="font-size:.83rem;" title="{{ $item['area_name'] }}">
+                                                            {{ trim(explode(':', $item['area_name'])[0]) }}
+                                                        </p>
+                                                        <small class="text-muted" style="font-size:.75rem;">
+                                                            {{ trim(explode(':', $item['area_name'])[1] ?? '') }}
+                                                        </small>
+                                                        <div class="text-muted mt-1" style="font-size:.72rem;">
+                                                            <i class="bx bx-user me-1"></i>
+                                                            @if($item['assigned_count'] > 0)
+                                                                {{ $item['assigned_count'] }} task force{{ $item['assigned_count'] > 1 ? 's' : '' }} assigned
+                                                            @else
+                                                                No task force assigned yet
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                    <span class="badge {{ $item['finalized'] ? 'bg-success' : 'bg-secondary' }} flex-shrink-0">
+                                                        {{ $item['finalized'] ? 'Finalized' : 'Pending' }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                        @endforeach
+
+                        @if(!$loop->last)
+                            <hr class="my-3">
+                        @endif
+
                     @endforeach
+
                 </div>
 
-            @else
+            @empty
                 <p class="text-muted mb-0">No ongoing accreditation at the moment.</p>
-            @endif
+            @endforelse
 
         </div>
     </div>
@@ -143,18 +185,77 @@
         <div class="col-lg-7">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-white fw-semibold">Recent Activities</div>
-                <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
-                    <ul class="list-group list-group-flush">
-                        @forelse($recentActivities as $act)
-                            <li class="list-group-item d-flex align-items-center gap-3 py-3">
-                                <i class="bx {{ $act['icon'] }} {{ $act['color'] }} fs-5"></i>
-                                <span class="flex-grow-1" style="font-size:.875rem;">{{ $act['text'] }}</span>
-                                <small class="text-muted flex-shrink-0">{{ $act['time'] }}</small>
-                            </li>
-                        @empty
-                            <li class="list-group-item text-muted py-3">No recent activity.</li>
-                        @endforelse
-                    </ul>
+                <div class="card-body p-0" style="max-height:480px; overflow-y:auto;">
+
+                    @forelse($recentActivities as $act)
+
+                        @php
+                            $prevAct     = $loop->first ? null : $recentActivities[$loop->index - 1];
+                            $sameContext = $prevAct
+                                && $prevAct['accreditation'] === $act['accreditation']
+                                && $prevAct['level']         === $act['level']
+                                && $prevAct['program']       === $act['program'];
+                        @endphp
+
+                        @if(($act['accreditation'] || $act['level'] || $act['program']) && !$sameContext)
+                            <div class="px-3 py-2 d-flex align-items-center gap-1 flex-wrap"
+                                 style="background:#f8fafc; border-bottom:2px solid #e2e8f0;
+                                        {{ !$loop->first ? 'border-top:1px solid #e2e8f0;' : '' }}
+                                        position:sticky; top:0; z-index:1;">
+                                @if($act['accreditation'])
+                                    <span class="text-muted fw-semibold" style="font-size:.75rem;">
+                                        <i class="bx bx-certification me-1"></i>{{ $act['accreditation'] }}
+                                    </span>
+                                @endif
+                                @if($act['level'])
+                                    <span class="text-muted" style="font-size:.65rem;">•</span>
+                                    <span class="text-muted fw-semibold" style="font-size:.75rem;">
+                                        <i class="bx bx-layer me-1"></i>{{ $act['level'] }}
+                                    </span>
+                                @endif
+                                @if($act['program'])
+                                    <span class="text-muted" style="font-size:.65rem;">•</span>
+                                    <span class="text-primary fw-semibold" style="font-size:.75rem;">
+                                        <i class="bx bx-book me-1"></i>{{ $act['program'] }}
+                                    </span>
+                                @endif
+                            </div>
+                        @endif
+
+                        <div class="d-flex align-items-start gap-3 px-3 py-2"
+                             style="border-bottom:1px solid #f1f5f9;">
+
+                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1"
+                                 style="width:28px; height:28px; min-width:28px;
+                                        background:{{ match($act['color']) {
+                                            'text-success' => '#dcfce7',
+                                            'text-info'    => '#e0f2fe',
+                                            'text-warning' => '#fef9c3',
+                                            default        => '#dbeafe',
+                                        } }};">
+                                <i class="bx {{ $act['icon'] }} {{ $act['color'] }}" style="font-size:.8rem;"></i>
+                            </div>
+
+                            <div class="flex-grow-1" style="min-width:0;">
+                                <div class="text-dark" style="font-size:.82rem; line-height:1.5;">
+                                    {{  $act['text'] }}
+                                </div>
+                            </div>
+
+                            <div class="text-end flex-shrink-0">
+                                <div class="text-muted" style="font-size:.72rem;">{{ $act['time'] }}</div>
+                                <div class="text-muted" style="font-size:.65rem; opacity:.7;">{{ $act['date'] }}</div>
+                            </div>
+
+                        </div>
+
+                    @empty
+                        <div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">
+                            <i class="bx bx-calendar-x" style="font-size:2rem; opacity:.4;"></i>
+                            <small class="mt-2">No recent activity.</small>
+                        </div>
+                    @endforelse
+
                 </div>
             </div>
         </div>
@@ -164,15 +265,12 @@
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-white fw-semibold">Quick Actions</div>
                 <div class="card-body d-flex flex-column gap-2">
-
                     <a href="{{ route('users.taskforce.index') }}" class="btn btn-primary text-start d-flex align-items-center gap-2">
                         <i class="bx bx-people fs-5"></i> Manage Task Forces
                     </a>
-
                     <a href="{{ route('program.areas.evaluations') }}" class="btn btn-outline-success text-start d-flex align-items-center gap-2">
                         <i class="bx bx-list-check fs-5"></i> View Evaluations
                     </a>
-
                 </div>
             </div>
         </div>

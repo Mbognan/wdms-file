@@ -111,8 +111,8 @@
                                             {{ !in_array($status, [EvaluationStatus::FINALIZED, EvaluationStatus::UPDATED, EvaluationStatus::SUBMITTED]) ? '—' : '' }}
                                         </span>
                                     </td>
-                                    <td class="text-center">{{ $item['evaluation']->created_at->format('M d, Y h:i A') }}</td>
-                                    <td class="text-center">{{ $item['evaluation']->updated_at->format('M d, Y h:i A') }}</td>
+                                    <td class="text-center">{{ $item['evaluation']->created_at->format('M d, Y, h:i A') }}</td>
+                                    <td class="text-center">{{ $item['evaluation']->updated_at->format('M d, Y, h:i A') }}</td>
                                     <td class="text-center">
                                         <a href="{{ route('program.areas.evaluations.summary', [$item['evaluation']->id, $item['area']->id]) }}"
                                            class="btn btn-sm btn-outline-primary">View</a>

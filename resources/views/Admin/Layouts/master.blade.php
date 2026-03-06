@@ -120,7 +120,6 @@
 <script async defer src="{{ asset('assets/js/buttons.js') }}"></script>
 <script src="{{ asset('assets/js/sweetalert.js') }}"></script>
 <script src="{{ asset('assets/js/alpine.js') }}" defer></script>
-
 <script>
 Vue.component('global-search', {
     props: {
@@ -141,14 +140,14 @@ Vue.component('global-search', {
             switch (this.userRole) {
                 @php use App\Enums\UserType; @endphp
                 case '{{ UserType::ADMIN->value }}':
-                    return 'Search assessors, accreditors, programs, areas, parameters...';
+                    return 'Search assessors, accreditors, programs, areas, parameters, documents...';
                 case '{{ UserType::DEAN->value }}':
-                    return 'Search task forces, programs, areas, parameters...';
+                    return 'Search task forces, programs, areas, parameters, documents...';
                 case '{{ UserType::TASK_FORCE->value }}':
                 case '{{ UserType::INTERNAL_ASSESSOR->value }}':
-                    return 'Search your assigned programs, areas, parameters...';
+                    return 'Search your assigned programs, areas, parameters, documents...';
                 case '{{ UserType::ACCREDITOR->value }}':
-                    return 'Search programs, areas, parameters, sub-parameters...';
+                    return 'Search programs, areas, parameters, sub-parameters, documents...';
                 default:
                     return 'Type to search...';
             }
@@ -203,7 +202,7 @@ Vue.component('global-search', {
         },
         debouncedSearch() {
             if (this.searchTimeout) clearTimeout(this.searchTimeout);
-            if (this.query.length < 1) { this.results = []; return; }
+            if (this.query.length < 0) { this.results = []; return; }
             this.searchTimeout = setTimeout(() => this.performSearch(), 300);
         },
         performSearch() {
@@ -504,9 +503,11 @@ Vue.component('global-search', {
         </div>
     `
 });
+</script>
 
 @stack('vue-components')
 
+<script>
 new Vue({
     el: '#vue-app',
     methods: {

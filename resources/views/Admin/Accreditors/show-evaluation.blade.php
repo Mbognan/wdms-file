@@ -70,43 +70,71 @@
                 </thead>
 
                 <tbody>
-                @forelse($parameters as $parameter)
-                    {{-- PARAMETER HEADER --}}
-                    <tr class="table-secondary fw-semibold">
-                        <td colspan="5">{{ $parameter->parameter_name }}</td>
-                    </tr>
-
-                    @foreach($parameter->sub_parameters as $sub)
-                        @php
-                            $rating = $ratings[$sub->id] ?? null;
-                            $label  = $rating?->ratingOption?->label;
-                        @endphp
-
-                        <tr>
-                            <td style="padding-left: 30px">{{ $sub->sub_parameter_name }}</td>
-
-                            <td class="text-center">
-                                {{ $label === 'Available' ? $rating->score : '' }}
-                            </td>
-                            <td class="text-center">
-                                {{ $label === 'Available but Inadequate' ? $rating->score : '' }}
-                            </td>
-                            <td class="text-center">
-                                {{ $label === 'Not Available' ? '0' : '' }}
-                            </td>
-                            <td class="text-center">
-                                {{ $label === 'Not Applicable' ? 'NA' : '' }}
-                            </td>
+                    @forelse($parameters as $parameter)
+                        <tr class="table-secondary fw-semibold">
+                            <td colspan="5">{{ $parameter->parameter_name }}</td>
                         </tr>
-                    @endforeach
-                @empty
-                    <tr>
-                        <td colspan="5" class="text-center text-muted">
-                            No parameters found for this area.
-                        </td>
-                    </tr>
-                @endforelse
-                </tbody>
+
+                        @foreach($parameter->sub_parameters as $sub)
+                            @php
+                                $hasSubSub = $sub->subSubParameters->isNotEmpty();
+                                $rating    = !$hasSubSub ? ($ratings[$sub->id] ?? null) : null;
+                                $label     = $rating?->ratingOption?->label;
+
+                                // Compute sub-mean for sub-sub rows
+                                $subMeanScore = 0;
+                                $subMeanCount = 0;
+                                if ($hasSubSub) {
+                                    foreach ($sub->subSubParameters as $ss) {
+                                        $r = $subSubRatings[$ss->id] ?? null;
+                                        if ($r && in_array($r->ratingOption->label, ['Available', 'Available but Inadequate'])) {
+                                            $subMeanScore += $r->score;
+                                            $subMeanCount++;
+                                        } elseif ($r && $r->ratingOption->label === 'Not Available') {
+                                            $subMeanCount++;
+                                        }
+                                    }
+                                    $subMean = $subMeanCount ? number_format($subMeanScore / $subMeanCount, 2) : '0.00';
+                                }
+                            @endphp
+
+                            {{-- Sub-parameter row --}}
+                            <tr>
+                                <td style="padding-left: 30px; font-weight: 600;">
+                                    {{ $sub->sub_parameter_name }}
+                                </td>
+                                <td class="text-center">{{ $label === 'Available' ? $rating->score : '' }}</td>
+                                <td class="text-center">{{ $label === 'Available but Inadequate' ? $rating->score : '' }}</td>
+                                <td class="text-center">{{ $label === 'Not Available' ? '0' : '' }}</td>
+                                <td class="text-center">{{ $label === 'Not Applicable' ? 'NA' : '' }}</td>
+                            </tr>
+
+                            {{-- Sub-sub-parameter rows --}}
+                            @if($hasSubSub)
+                                @foreach($sub->subSubParameters as $subSub)
+                                    @php
+                                        $ssRating = $subSubRatings[$subSub->id] ?? null;
+                                        $ssLabel  = $ssRating?->ratingOption?->label;
+                                    @endphp
+                                    <tr>
+                                        <td style="padding-left: 55px; font-size: 14px;">
+                                            <i class="bx bx-subdirectory-right me-1"></i>{{ $subSub->name }}
+                                        </td>
+                                        <td class="text-center">{{ $ssLabel === 'Available' ? $ssRating->score : '' }}</td>
+                                        <td class="text-center">{{ $ssLabel === 'Available but Inadequate' ? $ssRating->score : '' }}</td>
+                                        <td class="text-center">{{ $ssLabel === 'Not Available' ? '0' : '' }}</td>
+                                        <td class="text-center">{{ $ssLabel === 'Not Applicable' ? 'NA' : '' }}</td>
+                                    </tr>
+                                @endforeach
+                            @endif
+
+                        @endforeach
+                    @empty
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No parameters found for this area.</td>
+                        </tr>
+                    @endforelse
+                    </tbody>
 
                 {{-- TOTALS --}}
                 <tfoot class="fw-semibold">

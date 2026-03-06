@@ -28,18 +28,20 @@
     <div class="row g-3">
         @forelse ($programAreas as $mapping)
             @php
-                $evaluation   = $mapping->evaluations->first();
-                $status       = $evaluation->status ?? 'not_started';
-                $evaluatorName = $evaluation?->files->first()?->uploader?->name;
+    $evaluation    = $mapping->evaluations?->first();
+    $status        = $evaluation?->status?->value ?? 'not_started';
+    $evaluatorName = $evaluation?->evaluator?->name;
 
                 $badgeClass = match($status) {
-                    'completed'  => 'bg-success',
-                    'ongoing'    => 'bg-warning text-dark',
-                    default      => 'bg-secondary',
+                    'finalized' => 'bg-success',
+                    'updated'   => 'bg-info text-dark',
+                    'ongoing'   => 'bg-warning text-dark',
+                    default     => 'bg-secondary',
                 };
 
                 $statusLabel = ucfirst(str_replace('_', ' ', $status));
-                $route = $isInternalAssessor 
+
+                $route = $isInternalAssessor
                     ? route('program.areas.evaluation', [$infoId, $levelId, $programId, $mapping->id])
                     : route('program.areas.parameters', [$infoId, $levelId, $programId, $mapping->id]);
             @endphp

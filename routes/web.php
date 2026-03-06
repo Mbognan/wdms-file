@@ -4,6 +4,7 @@ use App\Http\Controllers\ADMIN\AccreditationProgramController;
 use App\Http\Controllers\ADMIN\AccreditationController;
 use App\Http\Controllers\ADMIN\AssignmentController;
 use App\Http\Controllers\ADMIN\ParameterController;
+use App\Http\Controllers\ADMIN\SubOfSubparamController;
 use App\Http\Controllers\RoleRequestController;
 use App\Http\Controllers\ADMIN\AdminAcreditationController;
 use App\Http\Controllers\ADMIN\AdminTaskForceController;
@@ -157,6 +158,10 @@ Route::middleware('auth')->group(function () {
         '/accreditation-evaluations',
         [AccreditationEvaluationController::class, 'store']
     )->name('accreditation-evaluations.store');
+    
+    // Draft for evaluations
+    Route::post('/accreditation-evaluations/draft', [AccreditationEvaluationController::class, 'saveDraft'])
+    ->name('accreditation-evaluations.draft');
 
     Route::post(
         '/admin/evaluations/{infoId}/{levelId}/{programId}/{programAreaId}',
@@ -173,17 +178,23 @@ Route::middleware('auth')->group(function () {
         [AccreditationController::class, 'storeFinalVerdict']
     )->name('internal.final.verdict.store');
 
-    // FINAL VERDICT
+    // ARCHIVE
     Route::get('/archive', [ArchiveController::class, 'index'])
         ->name('archive.index');
 
-    // Completed accreditations
-    Route::get('/completed', [ArchiveController::class, 'completed'])
+    Route::get('/archive/completed', [ArchiveController::class, 'completed'])
         ->name('archive.completed');
 
-    // 🗑 Deleted / Withdrawn accreditations
-    Route::get('/deleted', [ArchiveController::class, 'deleted'])
+    Route::get('/archive/deleted', [ArchiveController::class, 'deleted'])
         ->name('archive.deleted');
+
+    // New — detail view of one completed accreditation
+    Route::get('/archive/{accreditation}', [ArchiveController::class, 'show'])
+        ->name('archive.show');
+
+    // New — mark an accreditation as completed (triggers archive)
+    Route::patch('/archive/{accreditation}/complete', [ArchiveController::class, 'markCompleted'])
+        ->name('archive.complete');
 });
 
 // Route for role requests
@@ -216,8 +227,12 @@ Route::middleware(['auth'])->group(function () {
     ->middleware('auth');
 });
 
-// Route for updating and deleting parameters and sub-parameters
+// Route for add, updating, and deleting parameters and sub-parameters
 Route::middleware(['auth'])->group(function () {
+    Route::post('/parameters/{parameter}/sub-parameters', [AdminAcreditationController::class, 'storeSubParameter'])
+        ->name('parameters.sub-parameters.store');
+    Route::post('/subparameters/{subParameter}/sub-of-sub', [AdminAcreditationController::class, 'storeSubOfSub'])
+        ->name('subparameters.sub-of-sub.store');
     Route::patch('/parameters/bulk-update', [ParameterController::class, 'bulkUpdate'])
         ->name('parameters.bulk-update');
 
@@ -231,6 +246,29 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/subparameters/{subParameter}', [ParameterController::class, 'deleteSubParameter'])
         ->name('subparameters.delete');
 
+    Route::patch('/sub-of-sub-parameters/{subSubParameter}', [AdminAcreditationController::class, 'updateSubOfSub'])
+        ->name('sub-of-sub-parameters.update');
+
+    Route::delete('/sub-of-sub-parameters/{subSubParameter}', [AdminAcreditationController::class, 'destroySubOfSub'])
+        ->name('sub-of-sub-parameters.destroy');
+});
+
+// Route for sub-subparameters
+Route::middleware(['auth'])->group(function () {
+    Route::get(
+        '/admin/accreditation/{infoId}/{levelId}/{programId}/{programAreaId}/sub-subparameter/{subSubParameterId}/uploads',
+        [SubOfSubparamController::class, 'subSubParameterUploads']
+    )->name('subsubparam.uploads.index');
+
+    Route::post(
+        '/admin/accreditation/{infoId}/{levelId}/{programId}/{programAreaId}/sub-subparameter/{subSubParameterId}/uploads',
+        [SubOfSubparamController::class, 'storeSubSubParameterUploads']
+    )->name('subsubparam.uploads.store');
+
+    Route::delete(
+        '/admin/accreditation/sub-subparameter/uploads/{uploadId}',
+        [SubOfSubparamController::class, 'destroySubSubParameterUpload']
+    )->name('subsubparam.uploads.destroy');
 });
 
 Route::middleware(['auth'])->group(function () {
