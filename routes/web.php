@@ -2,24 +2,31 @@
 
 use App\Http\Controllers\ADMIN\AccreditationProgramController;
 use App\Http\Controllers\ADMIN\AccreditationController;
-use App\Http\Controllers\ADMIN\ACREDITATIONCONTROLLER;
+use App\Http\Controllers\ADMIN\AssignmentController;
+use App\Http\Controllers\ADMIN\ParameterController;
+use App\Http\Controllers\ADMIN\SubOfSubparamController;
+use App\Http\Controllers\RoleRequestController;
 use App\Http\Controllers\ADMIN\AdminAcreditationController;
 use App\Http\Controllers\ADMIN\AdminTaskForceController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\ArchiveController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AccreditationEvaluationController;
+use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SwitchRoleController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->route('login');
+    return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('admin.dashboard.index');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+});
 
 Route::middleware('auth')->group(function () {
+    Route::get('/profile/details', [ProfileController::class, 'index'])->name('profile.index');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -95,10 +102,6 @@ Route::middleware('auth')->group(function () {
         '/sub-parameter/{subParameter}/uploads/{infoId}/{levelId}/{programId}/{programAreaId}',
         [AdminAcreditationController::class, 'storeSubParameterUploads']
     )->name('subparam.uploads.store');
-    Route::post(
-        '/admin/areas/assign-users',
-        [AdminAcreditationController::class, 'assignUsersToArea']
-    )->name('areas.assign.users');
 
     Route::delete(
         '/subparam/uploads/{upload}',
@@ -109,12 +112,12 @@ Route::middleware('auth')->group(function () {
     Route::get(
         '/admin/accreditations/{id}/edit',
         [AdminAcreditationController::class, 'edit']
-    );
+    )->name('accreditation.edit');
 
     Route::get(
         '/admin/accreditations/{id}',
         [AdminAcreditationController::class, 'show']
-    );
+    )->name('accreditation.show');
 
     Route::put(
         '/admin/accreditations/{id}',
@@ -155,27 +158,138 @@ Route::middleware('auth')->group(function () {
         '/accreditation-evaluations',
         [AccreditationEvaluationController::class, 'store']
     )->name('accreditation-evaluations.store');
+    
+    // Draft for evaluations
+    Route::post('/accreditation-evaluations/draft', [AccreditationEvaluationController::class, 'saveDraft'])
+    ->name('accreditation-evaluations.draft');
 
     Route::post(
         '/admin/evaluations/{infoId}/{levelId}/{programId}/{programAreaId}',
         [AccreditationController::class, 'store']
     )->name('area.evaluations.store');
+
+    Route::patch(
+        '/evaluations/{evaluation}/finalize',
+        [AccreditationEvaluationController::class, 'markAsFinal']
+    )->name('evaluations.finalize');
+
     Route::post(
         '/internal/final-verdict',
         [AccreditationController::class, 'storeFinalVerdict']
     )->name('internal.final.verdict.store');
 
-    // FINAL VERDICT
-    Route::get('/', [ArchiveController::class, 'index'])
+    // ARCHIVE
+    Route::get('/archive', [ArchiveController::class, 'index'])
         ->name('archive.index');
 
-    // Completed accreditations
-    Route::get('/completed', [ArchiveController::class, 'completed'])
+    Route::get('/archive/completed', [ArchiveController::class, 'completed'])
         ->name('archive.completed');
 
-    // 🗑 Deleted / Withdrawn accreditations
-    Route::get('/deleted', [ArchiveController::class, 'deleted'])
+    Route::get('/archive/deleted', [ArchiveController::class, 'deleted'])
         ->name('archive.deleted');
+
+    // New — detail view of one completed accreditation
+    Route::get('/archive/{accreditation}', [ArchiveController::class, 'show'])
+        ->name('archive.show');
+
+    // New — mark an accreditation as completed (triggers archive)
+    Route::patch('/archive/{accreditation}/complete', [ArchiveController::class, 'markCompleted'])
+        ->name('archive.complete');
 });
+
+// Route for role requests
+Route::middleware(['auth'])->group(function () {
+
+    // View pending requests (for approvers)
+    Route::get('/role-requests', [RoleRequestController::class, 'index'])
+        ->name('role-requests.index');
+
+    // Submit a new role request (by logged-in user)
+    Route::post('/role-requests', [RoleRequestController::class, 'store'])
+        ->name('role-requests.store');
+    
+    // Data used for AJAX
+    Route::get('/data', [RoleRequestController::class, 'data'])->name('role-requests.data');
+
+    // Approve a request (for approvers)
+    Route::post('/role-requests/{roleRequest}/approve', [RoleRequestController::class, 'approve'])
+        ->name('role-requests.approve');
+
+    // Reject a request (for approvers)
+    Route::post('/role-requests/{roleRequest}/reject', [RoleRequestController::class, 'reject'])
+        ->name('role-requests.reject');
+});
+
+// Route for switching role
+Route::middleware(['auth'])->group(function () {
+    Route::post('/switch-role', [SwitchRoleController::class, 'switch'])
+    ->name('switch.role')
+    ->middleware('auth');
+});
+
+// Route for add, updating, and deleting parameters and sub-parameters
+Route::middleware(['auth'])->group(function () {
+    Route::post('/parameters/{parameter}/sub-parameters', [AdminAcreditationController::class, 'storeSubParameter'])
+        ->name('parameters.sub-parameters.store');
+    Route::post('/subparameters/{subParameter}/sub-of-sub', [AdminAcreditationController::class, 'storeSubOfSub'])
+        ->name('subparameters.sub-of-sub.store');
+    Route::patch('/parameters/bulk-update', [ParameterController::class, 'bulkUpdate'])
+        ->name('parameters.bulk-update');
+
+    Route::patch('/subparameters/{subParameter}', [ParameterController::class, 'updateSubParameter'])
+        ->name('subparameters.update');
+
+        
+    Route::delete('/parameters/bulk-delete', [ParameterController::class, 'bulkDelete'])
+    ->name('parameters.bulk-delete');
+    
+    Route::delete('/subparameters/{subParameter}', [ParameterController::class, 'deleteSubParameter'])
+        ->name('subparameters.delete');
+
+    Route::patch('/sub-of-sub-parameters/{subSubParameter}', [AdminAcreditationController::class, 'updateSubOfSub'])
+        ->name('sub-of-sub-parameters.update');
+
+    Route::delete('/sub-of-sub-parameters/{subSubParameter}', [AdminAcreditationController::class, 'destroySubOfSub'])
+        ->name('sub-of-sub-parameters.destroy');
+});
+
+// Route for sub-subparameters
+Route::middleware(['auth'])->group(function () {
+    Route::get(
+        '/admin/accreditation/{infoId}/{levelId}/{programId}/{programAreaId}/sub-subparameter/{subSubParameterId}/uploads',
+        [SubOfSubparamController::class, 'subSubParameterUploads']
+    )->name('subsubparam.uploads.index');
+
+    Route::post(
+        '/admin/accreditation/{infoId}/{levelId}/{programId}/{programAreaId}/sub-subparameter/{subSubParameterId}/uploads',
+        [SubOfSubparamController::class, 'storeSubSubParameterUploads']
+    )->name('subsubparam.uploads.store');
+
+    Route::delete(
+        '/admin/accreditation/sub-subparameter/uploads/{uploadId}',
+        [SubOfSubparamController::class, 'destroySubSubParameterUpload']
+    )->name('subsubparam.uploads.destroy');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::post(
+        '/admin/areas/assign-users',
+        [AdminAcreditationController::class, 'assignUsersToArea']
+    )->name('areas.assign.users');
+    
+    Route::delete(
+        'assignments/unassign/{assignment}',
+        [AssignmentController::class, 'destroy']
+    )->name('assignments.unassign');
+});
+
+// Route for global search
+Route::get('/global-search', [SearchController::class, 'global'])
+    ->name('global.search')
+    ->middleware('auth');
+
+// Route for privacy policy and terms and conditions
+Route::view('/privacy-policy', 'privacy-policy')->name('privacy');
+Route::view('/terms-and-conditions', 'terms-and-conditions')->name('terms');
 
 require __DIR__ . '/auth.php';

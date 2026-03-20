@@ -1,376 +1,604 @@
 @extends('admin.layouts.master')
 
 @section('contents')
-<style>
-    .users-grid {
-        display: grid;
-        grid-template-columns: repeat(6, 1fr);
-        gap: 16px;
-        text-align: center;
-    }
-    .user-box {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-    .user-avatar {
-        width: 56px;
-        height: 56px;
-        border-radius: 50%;
-        background: #e5e7eb;
-        color: #1e40af;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 6px;
-        box-shadow: 0 2px 6px rgba(0,0,0,.15);
-    }
-    .user-name {
-        font-size: 13px;
-        font-weight: 500;
-    }
-</style>
+<div class="container-xxl container-p-y">
 
-<div class="container-xxl container-p-y"
-     x-data="areaEvaluation({{ $isEvaluated ? 'true' : 'false' }})"
-     x-init="init()">
-
-    {{-- BACK --}}
-    <div class="mb-3">
-        <a href="{{ url()->previous() }}" class="btn btn-sm btn-outline-secondary">
-            ← Back to Areas
+    {{-- ===== PAGE HEADER ===== --}}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item">
+                        <a href="{{ url()->previous() }}" class="text-muted">Areas</a>
+                    </li>
+                    <li class="breadcrumb-item active">Area Evaluation</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold mb-0">{{ $programArea->area->area_name }}</h4>
+            <small class="text-muted">Program Area Evaluation</small>
+        </div>
+        <a href="{{ url()->previous() }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bx bx-arrow-back me-1"></i> Back
         </a>
     </div>
 
-    {{-- HEADER --}}
-    <h4 class="fw-bold mb-1">{{ $programArea->area->area_name }}</h4>
-    <p class="text-muted mb-4">Program Area Evaluation</p>
-
-    {{-- LOCK WARNING --}}
-    @if($isEvaluated)
-        <div class="alert alert-warning">
-            <i class="bx bx-lock"></i>
-            This area has already been evaluated. Editing is disabled.
-        </div>
-    @endif
-
-    {{-- ASSIGNED USERS --}}
-    @if ($programArea->users->count() > 0)
-    <div class="card mb-4">
+    {{-- ===== ASSIGNED USERS ===== --}}
+    <div class="card mb-4" style="border-radius: 10px; border-color: #e2e8f0;">
         <div class="card-body">
-            <h6 class="fw-bold mb-3">Assigned Internal Assessors</h6>
 
-            <div class="users-grid">
-                @foreach ($programArea->users as $user)
-                    <div class="user-box">
-                        <div class="user-avatar">
-                            {{ strtoupper(substr($user->name, 0, 2)) }}
-                        </div>
-                        <div class="user-name">
-                            {{ $user->name }}
-                            @if (
-                                $user->id === auth()->id() &&
-                                $user->user_type === \App\Enums\UserType::INTERNAL_ASSESSOR
-                            )
-                                <span class="text-muted">(You)</span>
-                            @endif
-                        </div>
-
-                        <div class="user-name text-primary">
-                            {{ $user->user_type }}
-                        </div>
-                    </div>
-                @endforeach
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0">
+                    <i class="bx bx-user-check me-2 text-primary"></i>Internal Assessors
+                </h6>
             </div>
-        </div>
-    </div>
-    @endif
 
-    {{-- AREA EVALUATION --}}
-    <div class="card mb-4">
-        <div class="card-body">
-            <h6 class="fw-bold mb-3">Area Evaluation</h6>
-
-            <table class="table table-bordered table-sm align-middle">
-                <thead class="table-light">
-                    <tr class="text-center">
-                        <th style="width:35%">Checklist Item</th>
-                        <th>Available<br><small>(5–4–3)</small></th>
-                        <th>Available but Inadequate<br><small>(2–1)</small></th>
-                        <th>Not Available<br><small>(0)</small></th>
-                        <th>Not Applicable<br><small>(NA)</small></th>
-                        <th style="width:10%">Documents</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                @foreach($parameters as $parameter)
-                    <tr class="table-secondary fw-semibold">
-                        <td colspan="6">{{ $parameter->parameter_name }}</td>
-                    </tr>
-
-                    @foreach($parameter->sub_parameters as $sub)
-                    <tr>
-                        <td>{{ $sub->sub_parameter_name }}</td>
-
-                        <td class="text-center">
-                            <select class="form-select form-select-sm"
-                                    :disabled="locked"
-                                    :value="getStatus('{{ $sub->id }}') === 'available' ? getScore('{{ $sub->id }}') : ''"
-                                    @change="select('{{ $sub->id }}','available',$event.target.value)">
-                                <option value="">—</option>
-                                <option value="5">5</option>
-                                <option value="4">4</option>
-                                <option value="3">3</option>
-                            </select>
-                        </td>
-
-                        <td class="text-center">
-                            <select class="form-select form-select-sm"
-                                    :disabled="locked"
-                                    :value="getStatus('{{ $sub->id }}') === 'inadequate' ? getScore('{{ $sub->id }}') : ''"
-                                    @change="select('{{ $sub->id }}','inadequate',$event.target.value)">
-                                <option value="">—</option>
-                                <option value="2">2</option>
-                                <option value="1">1</option>
-                            </select>
-                        </td>
-
-                        <td class="text-center">
-                            <input type="radio"
-                                   :disabled="locked"
-                                   name="eval_{{ $sub->id }}"
-                                   :checked="getStatus('{{ $sub->id }}') === 'not_available'"
-                                   @change="select('{{ $sub->id }}','not_available',0)">
-                        </td>
-
-                        <td class="text-center">
-                            <input type="radio"
-                                   :disabled="locked"
-                                   name="eval_{{ $sub->id }}"
-                                   :checked="getStatus('{{ $sub->id }}') === 'not_applicable'"
-                                   @change="select('{{ $sub->id }}','not_applicable','NA')">
-                        </td>
-
-                        <td class="text-center">
-                            <a href="{{ route('subparam.uploads.index', [
-                                'subParameter'   => $sub->id,
-                                'infoId'         => $infoId,
-                                'levelId'        => $levelId,
-                                'programId'      => $programId,
-                                'programAreaId'  => $programAreaId,
-                            ]) }}"
-                               class="btn btn-sm btn-outline-primary">
-                                <i class="bx bxs-file-pdf"></i>
-                            </a>
-                        </td>
-                    </tr>
+            @if ($programArea->users->count() > 0)
+                <div class="tf-grid">
+                    @foreach ($programArea->users as $user)
+                        @php $isYou = $user->id === auth()->id(); @endphp
+                        <div class="tf-card {{ $isYou ? 'is-you' : '' }}">
+                            <x-initials-avatar :user="$user" size="sm" shape="circle" />
+                            <div class="tf-info">
+                                <div class="tf-name" title="{{ $user->name }}">
+                                    {{ $user->name }}
+                                </div>
+                                @if ($isYou)
+                                    <div class="tf-you-label">You</div>
+                                @endif
+                            </div>
+                        </div>
                     @endforeach
-                @endforeach
-                </tbody>
-
-                <tfoot class="fw-semibold">
-                    <tr>
-                        <td>Total</td>
-                        <td class="text-center" x-text="totals.available"></td>
-                        <td class="text-center" x-text="totals.inadequate"></td>
-                        <td class="text-center" x-text="totals.not_available"></td>
-                        <td class="text-center" x-text="totals.not_applicable"></td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td>Area Mean</td>
-                        <td colspan="5" class="text-center fs-5 fw-bold" x-text="mean"></td>
-                    </tr>
-                </tfoot>
-            </table>
-
-            {{-- RECOMMENDATION --}}
-            <div class="mt-4">
-                <label class="fw-bold">Recommendations</label>
-                <textarea class="form-control"
-                          rows="4"
-                          :disabled="locked"
-                          x-model="recommendation"
-                          @input="save()"></textarea>
-            </div>
-
-            {{-- ACTION BUTTONS --}}
-            <div class="mt-4 d-flex justify-content-end gap-2">
-                <button type="button"
-                        class="btn btn-outline-danger"
-                        :disabled="locked"
-                        @click="clearAll()">
-                    <i class="bx bx-trash"></i> Clear All
-                </button>
-
-                <button type="button"
-                        class="btn btn-primary"
-                        :disabled="locked || !isComplete()"
-                        @click="submitEvaluation()">
-                    <i class="bx bx-send"></i> Submit Evaluation
-                </button>
-            </div>
-
-            {{-- REMINDER --}}
-            <div class="mt-2 text-end"
-                 x-show="hasMissingEvaluations()"
-                 x-transition
-                 style="font-size: 13px;">
-                <i class="bx bx-info-circle text-warning"></i>
-                <span class="text-warning">
-                    Please evaluate all checklist items before submitting.
-                </span>
-            </div>
+                </div>
+            @else
+                <div class="empty-state">
+                    <i class="bx bx-user-x"></i>
+                    No Internal Assessors assigned yet.
+                </div>
+            @endif
 
         </div>
     </div>
+
+    {{-- ===== AREA EVALUATION ===== --}}
+    <div class="card mb-4" style="border-radius: 10px; border-color: #e2e8f0;">
+        <div class="card-header border-0 pb-0">
+            <h6 class="fw-bold mb-0">
+                <i class="bx bx-clipboard me-2 text-primary"></i>Area Evaluation
+            </h6>
+        </div>
+        <div class="card-body">
+            <area-evaluation
+                :accred-info-id="{{ $infoId }}"
+                :level-id="{{ $levelId }}"
+                :program-id="{{ $programId }}"
+                :program-area-id="{{ $programAreaId }}"
+                :parameters="{{ json_encode($parametersArray) }}"
+                :initial-evaluations="{{ json_encode($initialEvaluations) }}"
+                :initial-recommendation="{{ json_encode($initialRecommendation) }}"
+                :readonly="{{ $readonly ? 'true' : 'false' }}"
+                :is-submitted="{{ $isSubmitted ? 'true' : 'false' }}"
+                :is-finalized="{{ $isFinalized ? 'true' : 'false' }}"
+                :is-draft="{{ $isDraft ? 'true' : 'false' }}"
+                submit-url="{{ route('accreditation-evaluations.store') }}"
+                draft-url="{{ route('accreditation-evaluations.draft') }}"
+                csrf-token="{{ csrf_token() }}"
+            ></area-evaluation>
+        </div>
+    </div>
+
 </div>
+@endsection
 
+@push('vue-components')
 <script>
-    window.TOTAL_SUBPARAMETERS = {{ $parameters->sum(fn($p) => $p->sub_parameters->count()) }};
-</script>
+Vue.component('area-evaluation', {
+    props: {
+        accredInfoId:          Number,
+        levelId:               Number,
+        programId:             Number,
+        programAreaId:         Number,
+        parameters:            Array,
+        initialEvaluations:    Object,
+        initialRecommendation: String,
+        readonly:              Boolean,
+        isSubmitted:           Boolean,
+        isFinalized:           Boolean,
+        isDraft:               Boolean,
+        submitUrl:             String,
+        draftUrl:              String,
+        csrfToken:             String,
+    },
 
-<script>
-document.addEventListener('alpine:init', () => {
-    Alpine.data('areaEvaluation', (locked = false) => ({
-        locked,
-        accredInfoId: {{ $infoId }},
-        levelId: {{ $levelId }},
-        programId: {{ $programId }},
-        programAreaId: {{ $programAreaId }},
-        storageKey: 'area-eval-{{ auth()->id() }}-{{ $programAreaId }}-{{ $levelId }}-{{ $programId }}',
+    data() {
+        return {
+            evaluations:      {},
+            recommendation:   '',
+            isLocked:         this.readonly,
+            saving:           false,
+            draftSaving:      false,
+            lastSaved:        null,
+            loaded:           false,
+            autoSaveInterval: null,
+        };
+    },
 
-        evaluations: {},
-        totals: { available: 0, inadequate: 0, not_available: 0, not_applicable: 0 },
-        mean: '0.00',
-        recommendation: '',
+    computed: {
 
-        init() {
-            if (this.locked) return
-            const saved = localStorage.getItem(this.storageKey)
-            if (saved) {
-                const data = JSON.parse(saved)
-                this.evaluations = data.evaluations ?? {}
-                this.recommendation = data.recommendation ?? ''
-            }
-            this.compute()
+        // Count only rateable items:
+        // - sub-params without children → key: "sub_{id}"
+        // - sub-sub-params              → key: "ss_{id}"
+        totalRateable() {
+            let count = 0;
+            this.parameters.forEach(p => {
+                p.sub_parameters.forEach(sub => {
+                    count += sub.has_sub_sub ? sub.sub_sub_parameters.length : 1;
+                });
+            });
+            return count;
         },
 
         isComplete() {
-            return Object.keys(this.evaluations).length === window.TOTAL_SUBPARAMETERS
+            return Object.keys(this.evaluations).length === this.totalRateable;
         },
 
-        hasMissingEvaluations() {
-            return Object.keys(this.evaluations).length < window.TOTAL_SUBPARAMETERS
+        totals() {
+            let available = 0, inadequate = 0, notAvailable = 0, notApplicable = 0;
+            Object.values(this.evaluations).forEach(item => {
+                if      (item.status === 'available')    available    += item.score;
+                else if (item.status === 'inadequate')   inadequate   += item.score;
+                else if (item.status === 'not_available') notAvailable++;
+                else if (item.status === 'not_applicable') notApplicable++;
+            });
+            return { available, inadequate, notAvailable, notApplicable };
         },
 
-        getStatus(id) {
-            return this.evaluations[id]?.status ?? null
+        // Exclude not_applicable from both numerator and denominator
+        mean() {
+            let totalScore    = 0;
+            let notApplicable = 0;
+
+            // Count how many are marked not_applicable
+            Object.values(this.evaluations).forEach(item => {
+                if (item.status === 'not_applicable') {
+                    notApplicable++;
+                } else if (item.status === 'available' || item.status === 'inadequate') {
+                    totalScore += item.score;
+                }
+                // not_available contributes 0 to score, already handled
+            });
+
+            const denominator = this.totalRateable - notApplicable;
+
+            return denominator > 0
+                ? (totalScore / denominator).toFixed(2)
+                : '0.00';
+        },
+    },
+
+    mounted() {
+        this.loadInitial();
+        this.loaded = true;
+        this.autoSaveInterval = setInterval(() => {
+            if (!this.isLocked) this.saveDraft();
+        }, 30000);
+    },
+
+    beforeDestroy() {
+        clearInterval(this.autoSaveInterval);
+    },
+
+    methods: {
+
+        // ─── Load & normalize keys from server ───────────────────────────────
+        // Server sends keys already prefixed ("sub_5", "ss_12") if controller
+        // was updated, or plain numeric ("5") for legacy data → we keep both.
+        loadInitial() {
+            this.evaluations    = { ...this.initialEvaluations };
+            this.recommendation = this.initialRecommendation;
+            this.isLocked       = this.isFinalized ? true
+                                : this.isSubmitted  ? true
+                                : this.readonly;
         },
 
-        getScore(id) {
-            return this.evaluations[id]?.score ?? ''
+        unlockForm() {
+            if (!this.isSubmitted) return;
+            this.isLocked = false;
+            this.$nextTick(() => {
+                document.querySelector('.table')?.scrollIntoView({ behavior: 'smooth' });
+            });
         },
 
-        select(subId, status, score) {
-            if (this.locked) return
-            delete this.evaluations[subId]
+        // ─── Unified select — namespaced by type ('sub' | 'ss') ─────────────
+        select(id, status, score, type = 'sub') {
+            if (this.isLocked) return;
+            const key     = type + '_' + String(id);
+            const current = this.evaluations[key];
+
+            // Toggle off: clicking an already-selected radio deselects it
+            if (current && current.status === status &&
+                (status === 'not_available' || status === 'not_applicable')) {
+                Vue.delete(this.evaluations, key);
+                return;
+            }
 
             if (status === 'not_applicable') {
-                this.evaluations[subId] = { status, score: null }
+                Vue.set(this.evaluations, key, { status, score: null });
             } else if (status === 'not_available') {
-                this.evaluations[subId] = { status, score: 0 }
+                Vue.set(this.evaluations, key, { status, score: 0 });
             } else if (score !== '') {
-                this.evaluations[subId] = { status, score: parseInt(score) }
+                Vue.set(this.evaluations, key, { status, score: parseInt(score) });
+            } else {
+                // Dropdown reset to '—' → clear entry
+                Vue.delete(this.evaluations, key);
             }
-
-            this.compute()
-            this.save()
         },
 
-        compute() {
-            let totalScore = 0
-
-            this.totals = {
-                available: 0,
-                inadequate: 0,
-                not_available: 0,
-                not_applicable: 0,
-            }
-
-            Object.values(this.evaluations).forEach(item => {
-                if (item.status === 'available' || item.status === 'inadequate') {
-                    totalScore += item.score
-                    this.totals[item.status] += item.score
-                }
-            })
-
-            this.mean = window.TOTAL_SUBPARAMETERS > 0
-                ? (totalScore / window.TOTAL_SUBPARAMETERS).toFixed(2)
-                : '0.00'
+        // ─── Namespaced getters ───────────────────────────────────────────────
+        getStatus(id, type = 'sub') {
+            return this.evaluations[type + '_' + id]?.status || null;
         },
-
-        save() {
-            localStorage.setItem(this.storageKey, JSON.stringify({
-                evaluations: this.evaluations,
-                recommendation: this.recommendation
-            }))
+        getScore(id, type = 'sub') {
+            return this.evaluations[type + '_' + id]?.score ?? '';
         },
 
         clearAll() {
-            if (this.locked) return
-            if (!confirm('Clear all evaluations?')) return
-            localStorage.removeItem(this.storageKey)
-            this.evaluations = {}
-            this.recommendation = ''
-            this.compute()
+            if (this.isLocked) return;
+            if (!confirm('Clear all evaluations?')) return;
+            this.evaluations    = {};
+            this.recommendation = '';
+        },
+
+        // Sub-mean excludes not_applicable from denominator too
+        getSubMean(sub) {
+            if (!sub.has_sub_sub) return '—';
+            let total         = 0;
+            let notApplicable = 0;
+            const total_count = sub.sub_sub_parameters.length;
+
+            sub.sub_sub_parameters.forEach(ss => {
+                const item = this.evaluations['ss_' + ss.id];
+                if (!item) return;
+                if (item.status === 'not_applicable') {
+                    notApplicable++;
+                } else if (item.status === 'available' || item.status === 'inadequate') {
+                    total += item.score;
+                }
+            });
+
+            const denominator = total_count - notApplicable;
+            return denominator > 0 ? (total / denominator).toFixed(2) : '0.00';
+        },
+
+        async saveDraft() {
+            if (this.isLocked || this.draftSaving) return;
+            this.draftSaving = true;
+            try {
+                await fetch(this.draftUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': this.csrfToken,
+                        'Accept':       'application/json',
+                    },
+                    body: JSON.stringify({
+                        accred_info_id:  this.accredInfoId,
+                        level_id:        this.levelId,
+                        program_id:      this.programId,
+                        program_area_id: this.programAreaId,
+                        evaluations:     this.evaluations,
+                        recommendation:  this.recommendation,
+                    }),
+                });
+                this.lastSaved = new Date().toLocaleTimeString();
+            } catch (err) {
+                console.warn('Auto-save failed:', err);
+            } finally {
+                this.draftSaving = false;
+            }
         },
 
         async submitEvaluation() {
-            if (this.locked) return
-
-            if (!this.isComplete()) {
-                alert('Please evaluate all checklist items before submitting.')
-                return
+            if (this.isLocked || !this.isComplete) return;
+            this.saving = true;
+            try {
+                const res = await fetch(this.submitUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': this.csrfToken,
+                        'Accept':       'application/json',
+                    },
+                    body: JSON.stringify({
+                        accred_info_id:  this.accredInfoId,
+                        level_id:        this.levelId,
+                        program_id:      this.programId,
+                        program_area_id: this.programAreaId,
+                        evaluations:     this.evaluations,
+                        recommendation:  this.recommendation,
+                    }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || 'Submission failed');
+                window.location.href = data.redirect;
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                this.saving = false;
             }
+        },
+    },
 
-            const response = await fetch('{{ route('accreditation-evaluations.store') }}', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    accred_info_id: this.accredInfoId,
-                    level_id: this.levelId,
-                    program_id: this.programId,
-                    program_area_id: this.programAreaId,
-                    evaluations: this.evaluations,
-                    recommendation: this.recommendation
-                })
-            })
+    template: `
+        <div>
 
-            const data = await response.json()
-            
-            if (!response.ok) {
-               showToast(data.message ?? 'Something went wrong.', 'error')
-                return
-            }
+            {{-- Loading --}}
+            <div v-if="!loaded" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
 
-            if (!data.redirect) {
-                showToast(`Missing data: ${data}`, 'error');
-                return
-            }
+            {{-- Draft indicator --}}
+            <div v-if="!isLocked" class="d-flex justify-content-end mb-2">
+                <small class="text-muted fst-italic">
+                    <span v-if="draftSaving">
+                        <i class="bx bx-loader-alt bx-spin me-1"></i>Saving draft...
+                    </span>
+                    <span v-else-if="lastSaved">
+                        <i class="bx bx-check me-1 text-success"></i>Draft saved at @{{ lastSaved }}
+                    </span>
+                    <span v-else-if="isDraft">
+                        <i class="bx bx-info-circle me-1 text-warning"></i>Draft in progress
+                    </span>
+                </small>
+            </div>
 
-            localStorage.removeItem(this.storageKey)
-            window.location.href = data.redirect
+            {{-- State alerts --}}
+            <div v-if="isFinalized" class="alert alert-success d-flex align-items-center gap-2 mb-3">
+                <i class="bx bx-lock fs-5"></i>
+                <span>You already finalized your evaluation. Editing is locked.</span>
+            </div>
+            <div v-else-if="isSubmitted && isLocked"
+                 class="alert alert-warning d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bx bx-lock fs-5"></i>
+                    <span>You already evaluated this area. Click <strong>Edit Evaluation</strong> to make changes.</span>
+                </div>
+                <button class="btn btn-sm btn-warning flex-shrink-0" @click="unlockForm">
+                    <i class="bx bx-edit me-1"></i> Edit Evaluation
+                </button>
+            </div>
 
-        }
-    }))
-})
+            {{-- Evaluation Table --}}
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm align-middle">
+                    <thead class="table-light">
+                        <tr class="text-center">
+                            <th style="width:30%; vertical-align:middle;" class="fw-bold">Checklist Item</th>
+                            <th style="width:18%; vertical-align:top;">
+                                <div class="fw-bold">Available</div>
+                                <div class="small text-start mt-1">
+                                    <div>5 – Available and very adequate</div>
+                                    <div>4 – Available and adequate</div>
+                                    <div>3 – Available and fairly adequate</div>
+                                </div>
+                            </th>
+                            <th style="width:18%; vertical-align:top;">
+                                <div class="fw-bold">Available but Inadequate</div>
+                                <div class="small text-start mt-1">
+                                    <div>2 – Available but inadequate</div>
+                                    <div>1 – Available but very inadequate</div>
+                                </div>
+                            </th>
+                            <th style="width:14%; vertical-align:top;">
+                                <div class="fw-bold">Not Available</div>
+                                <div class="small mt-1">0 – No supporting document</div>
+                            </th>
+                            <th style="width:14%; vertical-align:top;">
+                                <div class="fw-bold">Not Applicable</div>
+                                <div class="small mt-1">N/A – Excluded from computation</div>
+                            </th>
+                            <th style="width:10%; vertical-align:middle;" class="fw-bold">Documents</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template v-for="parameter in parameters">
+
+                            {{-- Parameter header row --}}
+                            <tr class="table-secondary">
+                                <td colspan="6" class="fw-semibold">@{{ parameter.name }}</td>
+                            </tr>
+
+                            <template v-for="sub in parameter.sub_parameters">
+
+                                {{-- ── Sub-parameter row ── --}}
+                                <tr>
+                                    <td style="padding-left:24px; font-size:13px; font-weight:600;">
+                                        @{{ sub.name }}
+                                    </td>
+
+                                    {{-- Has sub-sub: show mean, no inputs here --}}
+                                    <template v-if="sub.has_sub_sub">
+                                        <td colspan="4" class="text-center text-muted small fst-italic">
+                                            Rated via sub-items below
+                                            — Mean: <strong>@{{ getSubMean(sub) }}</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="text-muted small">—</span>
+                                        </td>
+                                    </template>
+
+                                    {{-- No sub-sub: normal rating inputs, type='sub' --}}
+                                    <template v-else>
+                                        <td class="text-center">
+                                            <select class="form-select form-select-sm"
+                                                    :disabled="isLocked"
+                                                    :value="getStatus(sub.id, 'sub') === 'available' ? getScore(sub.id, 'sub') : ''"
+                                                    @change="select(sub.id, 'available', $event.target.value, 'sub')">
+                                                <option value="">—</option>
+                                                <option value="5">5</option>
+                                                <option value="4">4</option>
+                                                <option value="3">3</option>
+                                            </select>
+                                        </td>
+                                        <td class="text-center">
+                                            <select class="form-select form-select-sm"
+                                                    :disabled="isLocked"
+                                                    :value="getStatus(sub.id, 'sub') === 'inadequate' ? getScore(sub.id, 'sub') : ''"
+                                                    @change="select(sub.id, 'inadequate', $event.target.value, 'sub')">
+                                                <option value="">—</option>
+                                                <option value="2">2</option>
+                                                <option value="1">1</option>
+                                            </select>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="radio"
+                                                   :disabled="isLocked"
+                                                   :name="'eval_sub_' + sub.id"
+                                                   value="not_available"
+                                                   :checked="getStatus(sub.id, 'sub') === 'not_available'"
+                                                   @click="select(sub.id, 'not_available', 0, 'sub')">
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="radio"
+                                                   :disabled="isLocked"
+                                                   :name="'eval_sub_' + sub.id"
+                                                   value="not_applicable"
+                                                   :checked="getStatus(sub.id, 'sub') === 'not_applicable'"
+                                                   @click="select(sub.id, 'not_applicable', null, 'sub')">
+                                        </td>
+                                        <td class="text-center">
+                                            <a v-if="sub.uploads_count > 0"
+                                               :href="sub.uploads_url"
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="bx bxs-file-pdf me-1"></i>@{{ sub.uploads_count }}
+                                            </a>
+                                            <span v-else class="text-muted small">—</span>
+                                        </td>
+                                    </template>
+                                </tr>
+
+                                {{-- ── Sub-sub-parameter rows, type='ss' ── --}}
+                                <template v-if="sub.has_sub_sub">
+                                    <tr v-for="subSub in sub.sub_sub_parameters" :key="'ss_' + subSub.id">
+                                        <td style="padding-left:48px; font-size:12px; color:#666;">
+                                            <i class="bx bx-subdirectory-right me-1"></i>@{{ subSub.name }}
+                                        </td>
+                                        <td class="text-center">
+                                            <select class="form-select form-select-sm"
+                                                    :disabled="isLocked"
+                                                    :value="getStatus(subSub.id, 'ss') === 'available' ? getScore(subSub.id, 'ss') : ''"
+                                                    @change="select(subSub.id, 'available', $event.target.value, 'ss')">
+                                                <option value="">—</option>
+                                                <option value="5">5</option>
+                                                <option value="4">4</option>
+                                                <option value="3">3</option>
+                                            </select>
+                                        </td>
+                                        <td class="text-center">
+                                            <select class="form-select form-select-sm"
+                                                    :disabled="isLocked"
+                                                    :value="getStatus(subSub.id, 'ss') === 'inadequate' ? getScore(subSub.id, 'ss') : ''"
+                                                    @change="select(subSub.id, 'inadequate', $event.target.value, 'ss')">
+                                                <option value="">—</option>
+                                                <option value="2">2</option>
+                                                <option value="1">1</option>
+                                            </select>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="radio"
+                                                   :disabled="isLocked"
+                                                   :name="'eval_ss_' + subSub.id"
+                                                   value="not_available"
+                                                   :checked="getStatus(subSub.id, 'ss') === 'not_available'"
+                                                   @click="select(subSub.id, 'not_available', 0, 'ss')">
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="radio"
+                                                   :disabled="isLocked"
+                                                   :name="'eval_ss_' + subSub.id"
+                                                   value="not_applicable"
+                                                   :checked="getStatus(subSub.id, 'ss') === 'not_applicable'"
+                                                   @click="select(subSub.id, 'not_applicable', null, 'ss')">
+                                        </td>
+                                        <td class="text-center">
+                                            <a v-if="subSub.uploads_count > 0"
+                                               :href="subSub.uploads_url"
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="bx bxs-file-pdf me-1"></i>@{{ subSub.uploads_count }}
+                                            </a>
+                                            <span v-else class="text-muted small">—</span>
+                                        </td>
+                                    </tr>
+                                </template>
+
+                            </template>
+                        </template>
+                    </tbody>
+                    <tfoot class="fw-semibold table-light">
+                        <tr>
+                            <td>Total</td>
+                            <td class="text-center">@{{ totals.available }}</td>
+                            <td class="text-center">@{{ totals.inadequate }}</td>
+                            <td class="text-center">0</td>
+                            <td class="text-center">N/A</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Area Mean</td>
+                            <td colspan="5" class="text-center fw-bold" style="font-size:1.1rem;">
+                                @{{ mean }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            {{-- Recommendation --}}
+            <div class="mt-4">
+                <label class="form-label fw-semibold">Recommendations</label>
+                <textarea class="form-control"
+                          rows="4"
+                          :disabled="isLocked"
+                          v-model="recommendation"></textarea>
+            </div>
+
+            {{-- Actions --}}
+            <div class="mt-4 d-flex justify-content-between align-items-center">
+                <div style="font-size:13px;" v-if="!isComplete && !isLocked">
+                    <i class="bx bx-info-circle text-warning me-1"></i>
+                    <span class="text-warning">Please evaluate all checklist items before submitting.</span>
+                </div>
+                <div v-else></div>
+
+                <div class="d-flex gap-2">
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            :disabled="isLocked || draftSaving"
+                            @click="saveDraft()">
+                        <i class="bx bx-save me-1"></i>
+                        @{{ draftSaving ? 'Saving...' : 'Save Draft' }}
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-outline-danger"
+                            :disabled="isLocked"
+                            @click="clearAll()">
+                        <i class="bx bx-trash me-1"></i> Clear All
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-primary"
+                            :disabled="isLocked || !isComplete || saving"
+                            @click="submitEvaluation()">
+                        <i class="bx bx-send me-1"></i>
+                        @{{ saving ? 'Submitting...' : 'Submit Evaluation' }}
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    `
+});
 </script>
-@endsection
+@endpush
